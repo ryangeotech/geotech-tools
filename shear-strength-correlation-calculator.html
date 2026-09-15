@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shear Strength Correlation Calculator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- P1-4: self-hosted IBM Plex (was Google Fonts CDN) -->
 <style>
   :root {
     --navy:#0c1f35;--navy2:#152d4a;--blue:#1d5fa8;--blue2:#2471c9;
@@ -22,6 +22,7 @@
 
   /* ── HEADER ── */
   .header{background:var(--navy);color:#fff;border-bottom:3px solid var(--blue2)}
+  .breadcrumb{padding:6px 24px;font-size:11px;font-family:var(--mono);color:var(--muted);background:#fff;border-bottom:1px solid var(--border)}.breadcrumb a{color:var(--blue2);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
   .header-inner{max-width:1320px;margin:0 auto;padding:18px 24px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
   .header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
   .header h1 span{color:#6db3f5}
@@ -129,6 +130,13 @@
   .badge{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:10px;white-space:nowrap}
   .badge.coarse{background:var(--gc2);color:var(--gc);border:1px solid var(--gcbr)}
   .badge.fine{background:var(--gn2);color:var(--gn);border:1px solid var(--gnbr)}
+  /* ── TRANSPOSED SUMMARY TABLE ── */
+  .sum-tbl.transposed{table-layout:fixed;width:100%}
+  .sum-tbl.transposed th.sum-corner{background:var(--navy2);color:#fff;text-align:left;font-size:10.5px;font-weight:700;width:130px;min-width:110px}
+  .sum-tbl.transposed th.sum-rh{background:#dce8f4;color:var(--navy);text-align:left;font-size:11px;font-weight:600;white-space:nowrap;width:130px;min-width:110px}
+  .sum-tbl.transposed td{text-align:center;vertical-align:middle;word-break:break-word}
+  .sum-tbl.transposed tr.dv-row th.sum-rh{background:#fff8e8;color:var(--amber)}
+  .sum-tbl.transposed tr.dv-row td{background:#fffcf0}
 
   /* ── REFERENCE TABLE ── */
   .ref-tbl{border-collapse:collapse;width:100%;font-size:12px}
@@ -178,10 +186,12 @@
       <button class="hdr-btn save" onclick="saveProject()" title="Save all project data to a JSON file">&#8659; Save Project</button>
       <button class="hdr-btn"      onclick="loadProject()" title="Load a previously saved project JSON file">&#8657; Load Project</button>
       <button class="hdr-btn print-btn" onclick="printAll()" title="Print all borings + summary + reference sheet (opens print window)">&#9113; Print All</button>
-      <button class="hdr-btn" onclick="location.href='index.html'" title="Return to Geotech Tools home">⌂ Home</button>
     </div>
     <div class="header-tag">v1.0 &nbsp;|&nbsp; Per-Boring Tabs &nbsp;&middot;&nbsp; (N<sub>1</sub>)<sub>60</sub> Correction &nbsp;&middot;&nbsp; &phi; / S<sub>u</sub> Profiles &amp; Print</div>
   </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">← Geotech Tools</a> &nbsp;/&nbsp; Shear Strength Correlation Calculator
 </div>
 
 <div class="container">
@@ -190,9 +200,15 @@
 <div class="card">
   <div class="card-head"><div class="card-head-l"><div class="dot"></div>Project Information</div></div>
   <div class="card-body">
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="field" style="flex:3"><label>Project Name</label><input type="text" id="projName" placeholder="Project Name" style="width:100%"></div>
+      <div class="field" style="flex:1"><label>Project No.</label><input type="text" id="projNo" placeholder="Project Number" style="width:100%"></div>
+    </div>
     <div class="field-row">
-      <div class="field" style="flex:2"><label>Project Name</label><input type="text" id="projName" placeholder="e.g. Fishing Creek Bridge" style="width:100%;max-width:420px"></div>
-      <div class="field"><label>Project No.</label><input type="text" id="projNo" placeholder="e.g. 12345.00" style="width:180px"></div>
+      <div class="field" style="flex:2"><label>Prepared By</label><input type="text" id="projPrepBy" placeholder="Engineer Name" style="width:100%"></div>
+      <div class="field" style="flex:0 0 130px"><label>Date</label><input type="text" id="projPrepDate" placeholder="MM/DD/YYYY" style="width:100%"></div>
+      <div class="field" style="flex:2"><label>Checked By</label><input type="text" id="projChkBy" placeholder="Engineer Name" style="width:100%"></div>
+      <div class="field" style="flex:0 0 130px"><label>Date</label><input type="text" id="projChkDate" placeholder="MM/DD/YYYY" style="width:100%"></div>
     </div>
   </div>
 </div>
@@ -211,13 +227,28 @@
       <span>C<sub>N</sub> = 0.77·log(20 / σ′<sub>v,tsf</sub>) &nbsp;[coarse]</span>
       <span>C<sub>N</sub> = 1.0 &nbsp;[fine]</span>
       <span>σ′<sub>v</sub> cumulative; γ → γ<sub>buoy</sub> below GWT</span>
+      <span style="color:#166534">φ′(PI) — Terzaghi/Peck/Mesri (1996), PI ≤ 200%</span>
     </div>
     <div class="note-box" style="margin-top:10px">
-      <strong>Two correlations, one per soil class:</strong>
+      <strong>Two N-based correlations, one per soil class:</strong>
       coarse-grained (granular) samples return a friction angle &phi; from Peck, Hanson &amp; Thornburn (1974);
       fine-grained (cohesive) samples return an undrained shear strength S<sub>u</sub> = (N<sub>1</sub>)<sub>60</sub> / 7.5 ksf.
       Per the source spreadsheet convention, the overburden correction C<sub>N</sub> is set to 1.0 for fine-grained soils,
       so (N<sub>1</sub>)<sub>60</sub> = N₆₀ for those samples.
+    </div>
+    <div class="note-box" style="margin-top:10px;border-left-color:#166534;background:#f4faf6">
+      <strong style="color:#166534">Optional third correlation — drained φ′ from Plasticity Index (fine-grained only):</strong>
+      for a fine-grained sample, entering a <strong>PI (%)</strong> value in its row unlocks an independent estimate of
+      <em>drained</em> friction angle φ′, from the digitized trend line of Terzaghi, Peck &amp; Mesri (1996),
+      <em>Soil Mechanics in Engineering Practice</em>, Fig. 19.7 — this tool's own rendering of the published plate, not a reproduction of it.
+      It runs entirely off Plasticity Index, independent of N-value/(N₁)₆₀, so a fine-grained sample can carry both an
+      undrained S<sub>u</sub> (N-based) and a drained φ′ (PI-based) side by side — useful since undrained and drained
+      parameters govern different analyses (e.g. short-term bearing capacity vs. long-term slope stability).
+      The PI field is greyed out until a fine-grained stratum is assigned, and is valid for PI ≤ 200%
+      (samples above that are flagged — consult the reference plate directly for shales / clay minerals in that range).
+      Once any sample has PI entered, φ′(PI) results appear alongside S<sub>u</sub> throughout the tool — the sample
+      row, the boring Results table and pills, the friction-angle profile plot, the project Summary, and a dedicated
+      φ′ vs. PI reference chart comparing your samples to the published trend.
     </div>
   </div>
 </div>
@@ -226,7 +257,7 @@
 <div class="card">
   <div class="card-head"><div class="card-head-l"><div class="dot"></div>Stratum Parameters</div></div>
   <div class="card-body">
-    <div class="note-box">Define soil strata used across all borings. Choose <strong>Coarse-grained</strong> (granular &rarr; &phi;) or <strong>Fine-grained</strong> (cohesive &rarr; S<sub>u</sub>). Unit weight &gamma; drives the σ′<sub>v</sub> calculation for the overburden correction.</div>
+    <div class="note-box">Define soil strata used across all borings. Choose <strong>Coarse-grained</strong> (granular &rarr; &phi;) or <strong>Fine-grained</strong> (cohesive &rarr; S<sub>u</sub>, plus an optional drained &phi;&prime; if PI is entered per sample). Unit weight &gamma; drives the σ′<sub>v</sub> calculation for the overburden correction.</div>
     <div class="tbl-wrap">
       <table class="param-tbl">
         <thead><tr>
@@ -260,6 +291,14 @@
     <div id="summaryContent"></div>
     <div id="splot"></div>
   </div>
+</div>
+
+<!-- ── PI CORRELATION REFERENCE CHART (shown only when PI correlations are used) ── -->
+<div class="card hidden" id="phiPIRefCard">
+  <div class="card-head">
+    <div class="card-head-l"><div class="dot" style="background:#166534"></div>φ′ vs. Plasticity Index — Reference (Terzaghi, Peck &amp; Mesri 1996, Fig. 19.7)</div>
+  </div>
+  <div class="card-body"><div id="phiPIRefChart"></div></div>
 </div>
 
 <!-- ── REFERENCES ─────────────────────────────────────────────────────────── -->
@@ -313,6 +352,58 @@ const CORR = {
 function corrFor(soilType){ return CORR[SOIL_CLS[soilType]] || null; }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DRAINED FRICTION ANGLE φ' FROM PLASTICITY INDEX
+// Terzaghi, Peck & Mesri (1996), Soil Mechanics in Engineering Practice,
+// Fig. 19.7 — trend line through soft/stiff clay + shale data, digitized by
+// pixel-tracing the published plot against its axis frame (not eyeballed).
+// Independent of N-value / N160 — applies to fine-grained samples only.
+// Piecewise-linear interpolation in log10(PI). Below PI=5, clamp to the
+// PI=5 value (chart is dense/flat there). Above PI=200, out of the tool's
+// digitized/vetted range — engineer should consult the reference plate.
+// Anchors from PI=5–100 are deliberately wide-spaced and pixel-traced with a
+// wide rolling-median filter — that stretch of the source plate is a dense
+// scatter cloud, and closely-spaced raw-traced points there previously picked
+// up a scatter-driven wiggle around PI≈20–30 instead of the smooth published
+// trend. PI=100–200 is a genuine, sharper bend in the source plate (not noise).
+// ═══════════════════════════════════════════════════════════════════════════
+const PHI_PI_MAXIP = 200; // cap — beyond this, flag "consult reference" per scope
+const PHI_PI_PTS = [
+  // [PI (%), φ' (deg)]
+  [5, 34.8], [10, 33.1], [20, 30.1], [30, 28.4], [45, 26.0],
+  [60, 24.3], [80, 22.7], [100, 21.3], [120, 17.6], [150, 14.9], [200, 11.5],
+];
+function phiFromPI(PI) {
+  if (PI === null || PI === undefined || isNaN(PI) || PI < 0) return null;
+  if (PI > PHI_PI_MAXIP) return null; // out of digitized range — see phiFromPI_note
+  const p = Math.max(PI, PHI_PI_PTS[0][0]); // clamp low end
+  const lp = Math.log10(p);
+  for (let i = 0; i < PHI_PI_PTS.length - 1; i++) {
+    const [pi0, phi0] = PHI_PI_PTS[i], [pi1, phi1] = PHI_PI_PTS[i+1];
+    if (p <= pi1 || i === PHI_PI_PTS.length - 2) {
+      const t = (lp - Math.log10(pi0)) / (Math.log10(pi1) - Math.log10(pi0));
+      return phi0 + t * (phi1 - phi0);
+    }
+  }
+  return null;
+}
+// Note shown alongside φ'(PI) results — distinguishes "no data" from "out of range"
+function phiFromPI_note(PI) {
+  if (PI === null || PI === undefined || isNaN(PI) || PI < 0) return null;
+  if (PI > PHI_PI_MAXIP) return `PI > ${PHI_PI_MAXIP}% — consult Fig. 19.7 reference plate`;
+  return null;
+}
+
+// Extended digitized trend line for the REFERENCE CHART ONLY (through PI=1000,
+// covering the shale/clay-mineral tail). NOT used by phiFromPI() — the
+// calculator itself stays capped at PHI_PI_MAXIP=200, the vetted range for
+// this tool. This wider dataset exists purely to draw the reference plate
+// for context, same pixel-tracing method as PHI_PI_PTS above.
+const PHI_PI_CHART_PTS = [
+  ...PHI_PI_PTS,
+  [300, 8.2], [500, 5.2], [700, 3.6], [900, 2.4], [1000, 2.0],
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // STRATUM COLORS  (8-color pastel cycle)
 // ═══════════════════════════════════════════════════════════════════════════
 const STRAT_COLORS = [
@@ -332,13 +423,45 @@ const STRAT_COLORS = [
 const strata     = {};   // key → {label, soilType, gamma, colorIdx, desc}
 const boringKeys = [];   // ordered
 let nextSK = 1, nextBK = 1;
-const designValues = {}; // stratKey → user-entered design value
+const designValues = {}; // stratKey → user-entered design value (N-based: phi for coarse, Su for fine)
+const designValuesPhiPI = {}; // stratKey → user-entered design value for PI-correlated drained phi' (fine-grained only)
+const summaryExcluded = new Set(); // boringKeys excluded from summary
+const plotExcluded    = new Set(); // boringKeys hidden from plot (subset of summary-included)
+let cachedSummaryAll  = [];        // last all[] built by generateSummary, for plot filter re-renders
 let _inCascade = false;  // prevents recursive σ'v profile cascade
 let kFactor = 1.0;       // reliability factor for suggested design value (mean − k·σ)
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STATISTICAL HELPERS
+// BORING SORT
 // ═══════════════════════════════════════════════════════════════════════════
+// Natural sort: pad embedded numbers so alphabetic sort gives numeric ordering.
+// E.g. "EMB-B-01" < "EMB-B-01A" < "EMB-B-02" < "SPL-B-01"
+function naturalSortKey(s) {
+  return s.replace(/(\d+)/g, (_, n) => n.padStart(10, '0'));
+}
+// Returns a sorted copy of boringKeys using the user-visible boring label,
+// sorted alphabetically first, then numerically (sub-sort) via natural sort.
+function sortedBoringKeys() {
+  return [...boringKeys].sort((a, b) => {
+    const la = (document.getElementById(`blabel-${a}`)?.value || a).toUpperCase();
+    const lb = (document.getElementById(`blabel-${b}`)?.value || b).toUpperCase();
+    return naturalSortKey(la).localeCompare(naturalSortKey(lb));
+  });
+}
+
+// Reorders tab-bar button elements in the DOM to match sortedBoringKeys().
+// Safe to call any time — insertBefore moves existing nodes without cloning.
+function sortTabBar() {
+  const tabBar = document.getElementById('tabBar');
+  const addBtn = tabBar.querySelector('.add-tab');
+  if (!addBtn) return;
+  sortedBoringKeys().forEach(bkey => {
+    const btn = document.getElementById('tabbtn-' + bkey);
+    if (btn) tabBar.insertBefore(btn, addBtn);
+  });
+}
+
+
 function arrMedian(arr) {
   if (!arr.length) return null;
   const s = [...arr].sort((a,b)=>a-b);
@@ -361,6 +484,22 @@ function arrPct(arr, p) {
   const idx = p*(s.length-1);
   const lo = Math.floor(idx), hi = Math.ceil(idx);
   return lo===hi ? s[lo] : s[lo]+(s[hi]-s[lo])*(idx-lo);
+}
+// Linear interpolation of {yVal, val} point array at a given y.
+// Returns null if y is outside the data range.
+function lerpAtY(pts, y) {
+  if (!pts || pts.length === 0) return null;
+  const sorted = [...pts].sort((a,b) => a.yVal - b.yVal);
+  const yMin = sorted[0].yVal, yMax = sorted[sorted.length-1].yVal;
+  if (y < yMin || y > yMax) return null;
+  for (let i = 0; i < sorted.length-1; i++) {
+    const p0 = sorted[i], p1 = sorted[i+1];
+    if (y >= p0.yVal && y <= p1.yVal) {
+      if (Math.abs(p1.yVal - p0.yVal) < 1e-9) return p0.val;
+      return p0.val + (p1.val - p0.val) * (y - p0.yVal) / (p1.yVal - p0.yVal);
+    }
+  }
+  return null;
 }
 function covBadge(cov) {
   if (cov === null) return '—';
@@ -446,6 +585,7 @@ function addBoring() {
 
   switchTab(bkey);
   updateSampleCount(bkey, 5);
+  sortTabBar();
 }
 
 function boringPanelHTML(bkey, counter) {
@@ -454,7 +594,7 @@ function boringPanelHTML(bkey, counter) {
     <div class="field-row">
       <div class="field"><label>Boring ID</label>
         <input type="text" id="blabel-${bkey}" value="B-${counter}" style="width:88px"
-          oninput="document.getElementById('tabbtn-${bkey}').textContent=this.value||'${bkey}'"></div>
+          oninput="document.getElementById('tabbtn-${bkey}').textContent=this.value||'${bkey}';sortTabBar()"></div>
       <div class="field"><label>Energy Ratio ER (%)</label>
         <input type="number" id="ber-${bkey}" value="60" step="1" min="1" max="100" style="width:90px"
           oninput="onBorER('${bkey}',this.value)"></div>
@@ -485,12 +625,14 @@ function boringPanelHTML(bkey, counter) {
         <th style="width:95px">Stratum</th>
         <th class="left" style="width:165px">Soil Type</th>
         <th style="width:60px" title="Supports column paste from gINT / Excel">N ⇩</th>
+        <th style="width:56px" title="Plasticity Index — fine-grained only. Supports column paste from gINT / Excel">PI (%) ⇩</th>
         <th style="width:68px;background:#d0e4f4" title="Effective vertical stress">σ′<sub>v</sub> (tsf)</th>
         <th style="width:46px;background:#d0e4f4" title="Overburden correction (1.0 for fine-grained)">C<sub>N</sub></th>
         <th style="width:50px;background:#d0e4f4" title="Energy correction = ER / 60">C<sub>E</sub></th>
         <th style="width:48px;background:#d0e4f4" title="Rod length correction (Skempton 1986)">C<sub>R</sub></th>
         <th style="width:52px;background:#d0e4f4" title="Energy + rod corrected = N × C_E × C_R">N<sub>60</sub></th>
         <th style="width:56px;background:#d0e4f4" title="Overburden + energy + rod corrected">(N<sub>1</sub>)<sub>60</sub></th>
+        <th style="width:58px;background:#d7ecd9" title="Drained friction angle from PI — Terzaghi/Peck/Mesri (1996) Fig. 19.7, fine-grained only">φ′(PI)</th>
         <th style="width:40px" title="Exclude from averages">Excl.</th>
       </tr></thead>
       <tbody id="sbody-${bkey}" data-count="0"></tbody>
@@ -520,6 +662,7 @@ function deleteBoring(bkey) {
   if (boringKeys.length <= 1) { alert('At least one boring is required.'); return; }
   const idx = boringKeys.indexOf(bkey);
   boringKeys.splice(idx, 1);
+  summaryExcluded.delete(bkey);
   document.getElementById('tabbtn-'+bkey)?.remove();
   document.getElementById('tabpanel-'+bkey)?.remove();
   switchTab(boringKeys[Math.min(idx, boringKeys.length-1)]);
@@ -575,12 +718,18 @@ function addSampleRow(bkey, r) {
       step="1" placeholder="20" style="width:56px;text-align:center"
       oninput="calcSamp('${bkey}',${r})" onkeydown="navKey(event,this)"
       onpaste="handlePaste(event,'${bkey}',${r},2)"></td>
+    <td><input type="number" id="pi-${bkey}-${r}" data-bkey="${bkey}" data-r="${r}" data-c="3"
+      step="1" min="0" placeholder="e.g. 20" style="width:52px;text-align:center;background:#f0f0f0;color:#999"
+      disabled title="Assign a fine-grained stratum to enable"
+      oninput="calcSamp('${bkey}',${r})" onkeydown="navKey(event,this)"
+      onpaste="handlePaste(event,'${bkey}',${r},3)"></td>
     <td class="auto-cell" id="sigv-${bkey}-${r}">—</td>
     <td class="auto-cell" id="cn-${bkey}-${r}">—</td>
     <td class="auto-cell" id="ce-${bkey}-${r}">—</td>
     <td class="auto-cell" id="cr-${bkey}-${r}">—</td>
     <td class="auto-cell" id="n60-${bkey}-${r}">—</td>
     <td class="auto-cell" id="n160-${bkey}-${r}">—</td>
+    <td class="auto-cell" id="phipi-${bkey}-${r}" style="background:#eaf6ec">—</td>
     <td style="text-align:center;border:1px solid #d8e4ee;padding:4px 2px"><input type="checkbox" id="excl-${bkey}-${r}"
       title="Exclude from averages" onchange="toggleExclude('${bkey}',${r})"></td>`;
   document.getElementById('sbody-'+bkey).appendChild(tr);
@@ -591,7 +740,7 @@ function addSampleRow(bkey, r) {
 //   depth > 32 → 1.00 ; > 19 → 0.95 ; > 13 → 0.85 ; else 0.75
 // ═══════════════════════════════════════════════════════════════════════════
 function rodLengthCorr(dep) {
-  if (!(dep > 0)) return 1.0;
+  if (dep === null || dep === undefined || isNaN(dep) || dep < 0) return 1.0; // no valid depth to base correction on
   if (dep > 32) return 1.00;
   if (dep > 19) return 0.95;
   if (dep > 13) return 0.85;
@@ -606,9 +755,12 @@ function computeCumulativeSigmaV(bkey, targetR) {
   const n         = parseInt(document.getElementById(`sbody-${bkey}`)?.dataset.count) || 0;
   const gw        = parseFloat(document.getElementById(`bgw-${bkey}`)?.value);
   const gwV       = parseFloat(document.getElementById('inpGw')?.value) || 62.4;
-  const targetDep = parseFloat(document.getElementById(`dep-${bkey}-${targetR}`)?.value);
+  const targetDep = parseFloat(document.getElementById(`dep-${bkey}-${targetR}`)?.value); // sample top (ft)
+  const targetLen = parseFloat(document.getElementById(`len-${bkey}-${targetR}`)?.value); // sample length (in)
+  const targetSk  = document.getElementById(`strat-${bkey}-${targetR}`)?.value;
+  const targetGma = strata[targetSk]?.gamma;
   const gwt       = (gw === 0 || gw > 0) ? gw : 1e9; // blank GWT → treat as very deep (all dry)
-  if (!(targetDep > 0)) return null;
+  if (!(targetDep >= 0)) return null; // blank/NaN depth → NaN>=0 is false, correctly blocked; 0 is a legitimate depth
 
   // Build depth profile: rows with a valid depth AND stratum, at or above targetDep
   const profile = [];
@@ -616,7 +768,7 @@ function computeCumulativeSigmaV(bkey, targetR) {
     const dep = parseFloat(document.getElementById(`dep-${bkey}-${r}`)?.value);
     const sk  = document.getElementById(`strat-${bkey}-${r}`)?.value;
     const gma = strata[sk]?.gamma;
-    if (dep > 0 && gma && dep <= targetDep + 0.001) profile.push({dep, gma});
+    if (dep >= 0 && gma && dep <= targetDep + 0.001) profile.push({dep, gma});
   }
   if (!profile.length) return null;
   profile.sort((a, b) => a.dep - b.dep);
@@ -634,6 +786,21 @@ function computeCumulativeSigmaV(bkey, targetR) {
     prevDep = dep;
     if (Math.abs(dep - targetDep) < 0.001) break;
   }
+
+  // Extend from the sample's top down to its vertical MIDPOINT (top + half the
+  // recovered length), using this sample's own stratum unit weight for that
+  // increment. σ'v (and therefore CN / (N1)60) should be evaluated at the
+  // depth the SPT blow-count actually represents — the sample midpoint —
+  // not at the top of the split-spoon interval. Falls back to the top depth
+  // (no extension) when sample length isn't entered, matching prior behavior.
+  const halfLenFt = (targetLen > 0) ? (targetLen / 12) / 2 : 0;
+  if (halfLenFt > 0 && targetGma) {
+    const dTop = targetDep, dBot = targetDep + halfLenFt;
+    const abvGWT = Math.max(0, Math.min(dBot, gwt) - Math.max(dTop, 0));
+    const blwGWT = Math.max(0, dBot - Math.max(dTop, gwt));
+    sigV += targetGma * abvGWT + Math.max(0, targetGma - gwV) * blwGWT;
+  }
+
   return sigV >= 0 ? sigV / 2000 : null; // → tsf
 }
 
@@ -641,6 +808,7 @@ function calcSamp(bkey, r) {
   const N   = parseFloat(document.getElementById(`nval-${bkey}-${r}`)?.value);
   const dep = parseFloat(document.getElementById(`dep-${bkey}-${r}`)?.value);
   const len = parseFloat(document.getElementById(`len-${bkey}-${r}`)?.value);
+  const PI  = parseFloat(document.getElementById(`pi-${bkey}-${r}`)?.value);
   const sk  = document.getElementById(`strat-${bkey}-${r}`)?.value;
   const er  = parseFloat(document.getElementById(`ber-${bkey}`)?.value)  || 60;
   const strat = strata[sk] || {};
@@ -650,7 +818,7 @@ function calcSamp(bkey, r) {
   const N60 = N > 0 ? N * CE * CR : null;
 
   let sigV=null, CN=null, N160=null;
-  if (sk && strata[sk]?.gamma && dep > 0) {
+  if (sk && strata[sk]?.gamma && dep >= 0) {
     sigV = computeCumulativeSigmaV(bkey, r);
     if (sigV !== null) {
       if (cls === 'fine') {
@@ -664,11 +832,32 @@ function calcSamp(bkey, r) {
     }
   }
 
-  const bot = dep > 0 && len > 0 ? `bot: ${(dep+len/12).toFixed(2)} ft` : '';
+  const bot = dep >= 0 && len > 0 ? `bot: ${(dep+len/12).toFixed(2)} ft` : '';
   const el  = id => document.getElementById(id);
   const f   = (v, d) => v !== null && v !== undefined ? v.toFixed(d) : '—';
+
+  // PI only applies to fine-grained samples — grey out / disable otherwise,
+  // and clear any stray value so a leftover PI can't silently feed a phantom
+  // φ′(PI) if the row is later switched back to fine-grained by mistake.
+  const piEl = el(`pi-${bkey}-${r}`);
+  if (piEl) {
+    if (cls === 'fine') {
+      if (piEl.disabled) { piEl.disabled = false; piEl.style.background = ''; piEl.style.color = ''; piEl.title = ''; }
+    } else {
+      if (!piEl.disabled) { piEl.value = ''; }
+      piEl.disabled = true; piEl.style.background = '#f0f0f0'; piEl.style.color = '#999';
+      piEl.title = 'Assign a fine-grained stratum to enable';
+    }
+  }
+  const PIv = (cls === 'fine' && !isNaN(PI)) ? PI : null;
+  const phiPI = phiFromPI(PIv);
   if (el(`bot-${bkey}-${r}`))   el(`bot-${bkey}-${r}`).textContent  = bot;
   if (el(`sdisp-${bkey}-${r}`)) el(`sdisp-${bkey}-${r}`).innerHTML  = strat.soilType ? clsBadge(strat.soilType) : '—';
+  if (el(`phipi-${bkey}-${r}`)) {
+    const noteTxt = phiFromPI_note(PIv);
+    el(`phipi-${bkey}-${r}`).textContent = phiPI !== null ? `${Math.round(phiPI)}°` : (noteTxt ? '⚠' : '—');
+    el(`phipi-${bkey}-${r}`).title = noteTxt || (phiPI !== null ? `φ′ = ${phiPI.toFixed(1)}° from PI = ${PIv}% (Terzaghi/Peck/Mesri Fig. 19.7)` : '');
+  }
   if (el(`sigv-${bkey}-${r}`))  el(`sigv-${bkey}-${r}`).textContent = sigV!==null ? sigV.toFixed(2) : '—';
   if (el(`cn-${bkey}-${r}`))    el(`cn-${bkey}-${r}`).textContent   = f(CN,2);
   if (el(`ce-${bkey}-${r}`))    el(`ce-${bkey}-${r}`).textContent   = f(CE,2);
@@ -794,7 +983,7 @@ function navKey(e, el) {
 // ═══════════════════════════════════════════════════════════════════════════
 // CALCULATE (per boring)
 // ═══════════════════════════════════════════════════════════════════════════
-function readBoringRows(bkey) {
+function readBoringRows(bkey, ignoreExcl = false) {
   const er  = parseFloat(document.getElementById(`ber-${bkey}`)?.value) || 60;
   const gwR = document.getElementById(`bgw-${bkey}`)?.value;
   const gw  = (gwR === '0' || parseFloat(gwR) >= 0) ? parseFloat(gwR) : 1e9;
@@ -806,15 +995,16 @@ function readBoringRows(bkey) {
     const N   = parseFloat(document.getElementById(`nval-${bkey}-${r}`)?.value);
     const dep = parseFloat(document.getElementById(`dep-${bkey}-${r}`)?.value);
     const len = parseFloat(document.getElementById(`len-${bkey}-${r}`)?.value);
+    const PIr = parseFloat(document.getElementById(`pi-${bkey}-${r}`)?.value);
     const sk  = document.getElementById(`strat-${bkey}-${r}`)?.value;
-    const excl = document.getElementById(`excl-${bkey}-${r}`)?.checked;
-    if (!N || N <= 0 || excl) continue;
+    const excl = document.getElementById(`excl-${bkey}-${r}`)?.checked || false;
+    if (!N || N <= 0 || (!ignoreExcl && excl)) continue;
     const strat = strata[sk] || {};
     const cls   = SOIL_CLS[strat.soilType] || null;
     const CR  = rodLengthCorr(dep);
     const N60 = N * CE * CR;
     let sigV=null, CN=null, N160=null;
-    if (strat.gamma && dep > 0) {
+    if (strat.gamma && dep >= 0) {
       sigV = computeCumulativeSigmaV(bkey, r);
       if (sigV !== null) {
         if (cls === 'fine') CN = 1.0;
@@ -822,7 +1012,9 @@ function readBoringRows(bkey) {
         N160 = (CN !== null) ? N60 * CN : null;
       }
     }
-    rows.push({rowNum:r+1, dep, len, soilType:strat.soilType||'', cls, stratKey:sk, N, CE, CR, N60, sigV, CN, N160});
+    const PI = (cls === 'fine' && !isNaN(PIr)) ? PIr : null;
+    const phiPI = phiFromPI(PI);
+    rows.push({rowNum:r+1, dep, len, soilType:strat.soilType||'', cls, stratKey:sk, N, CE, CR, N60, sigV, CN, N160, PI, phiPI, excl});
   }
   return rows;
 }
@@ -867,7 +1059,6 @@ function fmtStratVal(col, v) {
 
 function buildResTable(rows) {
   const cols = stratColumns(rows);
-  let h = '<table class="res-tbl"><thead><tr>';
   const fixH = [
     {cls:'left sticky-l',w:55,l:'#'},
     {cls:'',w:78,l:'Depth (ft)'},
@@ -876,26 +1067,40 @@ function buildResTable(rows) {
     {cls:'',w:48,l:'N₆₀'},
     {cls:'',w:50,l:'(N₁)₆₀'},
   ];
-  fixH.forEach(f => h+=`<th class="${f.cls}" style="min-width:${f.w}px;background:#dce8f4;color:var(--navy)">${f.l}</th>`);
-  // one color-coded header per stratum
+  // Row 1: fixed columns span both header rows; stratum columns span 2 (fine — Sᵤ|φ′) or 1 (coarse — φ)
+  let row1 = '<tr>';
+  fixH.forEach(f => row1 += `<th rowspan="2" class="${f.cls}" style="min-width:${f.w}px;background:#dce8f4;color:var(--navy);vertical-align:middle">${f.l}</th>`);
   cols.forEach(c => {
-    const lbl = escHtml(c.st.label || c.sk);
-    h += `<th style="min-width:92px;background:${c.sc.br};color:var(--navy);border-bottom:3px solid ${c.sc.br}">
-      ${lbl}<br><span style="font-weight:500;font-size:8px">${c.metric}</span></th>`;
+    const lbl  = escHtml(c.st.label || c.sk);
+    const span = c.cls==='fine' ? 2 : 1;
+    row1 += `<th colspan="${span}" style="min-width:${92*span}px;background:${c.sc.br};color:var(--navy);border-bottom:1px solid ${c.sc.br}">${lbl}</th>`;
   });
-  if (!cols.length) h += `<th style="min-width:92px;background:#dce8f4;color:var(--navy)">Strength</th>`;
-  h += '</tr></thead><tbody>';
+  if (!cols.length) row1 += `<th rowspan="2" style="min-width:92px;background:#dce8f4;color:var(--navy)">Strength</th>`;
+  row1 += '</tr>';
+  // Row 2: sub-metric labels — fine strata get Sᵤ (undrained, N-based) + φ′ (drained, PI-based)
+  let row2 = '<tr>';
+  cols.forEach(c => {
+    if (c.cls === 'fine') {
+      row2 += `<th style="min-width:78px;background:${c.sc.bg};color:var(--navy);font-weight:500;font-size:8px;border-bottom:3px solid ${c.sc.br}">Sᵤ (ksf)</th>`;
+      row2 += `<th style="min-width:70px;background:#eaf6ec;color:#166534;font-weight:500;font-size:8px;border-bottom:3px solid #86efac">φ′ (deg)</th>`;
+    } else {
+      row2 += `<th style="min-width:92px;background:${c.sc.bg};color:var(--navy);font-weight:500;font-size:8px;border-bottom:3px solid ${c.sc.br}">φ (deg)</th>`;
+    }
+  });
+  let h = `<table class="res-tbl"><thead>${row1}${row2}</thead><tbody>`;
 
   rows.forEach((row, ri) => {
     const v   = ssCalc(row);
-    const dep = row.dep ? `${row.dep.toFixed(1)}${row.len?` – ${(row.dep+row.len/12).toFixed(2)}`:''}` : '—';
+    const dep = row.dep != null ? `${row.dep.toFixed(1)}${row.len?` – ${(row.dep+row.len/12).toFixed(2)}`:''}` : '—';
     const bg  = ri%2===0?'#fff':'#f8fafc';
     let cells = '';
     cols.forEach(c => {
-      if (row.stratKey === c.sk && v !== null) {
-        cells += `<td style="background:${c.sc.bg};color:var(--navy);font-weight:700">${fmtStratVal(c, v)}</td>`;
+      const hit = row.stratKey === c.sk;
+      if (c.cls === 'fine') {
+        cells += (hit && v !== null) ? `<td style="background:${c.sc.bg};color:var(--navy);font-weight:700">${fmtStratVal(c, v)}</td>` : `<td class="cell-na">—</td>`;
+        cells += (hit && row.phiPI !== null) ? `<td style="background:#eaf6ec;color:#166534;font-weight:700">${Math.round(row.phiPI)}°</td>` : `<td class="cell-na">—</td>`;
       } else {
-        cells += `<td class="cell-na">—</td>`;
+        cells += (hit && v !== null) ? `<td style="background:${c.sc.bg};color:var(--navy);font-weight:700">${fmtStratVal(c, v)}</td>` : `<td class="cell-na">—</td>`;
       }
     });
     if (!cols.length) cells = `<td class="cell-na">—</td>`;
@@ -909,9 +1114,10 @@ function buildResTable(rows) {
       ${cells}</tr>`;
   });
 
-  // Summary rows: per-stratum Min/Max/Avg/Median
+  // Summary rows: per-stratum Min/Max/Avg/Median — Sᵤ and φ′ computed independently for fine strata
   const statFn = (arr,kind)=>arr.length?(kind==='Min'?Math.min(...arr):kind==='Max'?Math.max(...arr):kind==='Median'?arrMedian(arr):arr.reduce((a,b)=>a+b)/arr.length):null;
-  const colVals = cols.map(c => rows.filter(r=>r.stratKey===c.sk).map(ssCalc).filter(v=>v!==null));
+  const colVals    = cols.map(c => rows.filter(r=>r.stratKey===c.sk).map(ssCalc).filter(v=>v!==null));
+  const colPhiPI   = cols.map(c => c.cls==='fine' ? rows.filter(r=>r.stratKey===c.sk).map(r=>r.phiPI).filter(v=>v!=null) : []);
   ['Min','Max','Avg','Median'].forEach(s=>{
     const isMedian = s==='Median';
     h+=`<tr class="row-sum"><td class="left sticky-l" style="background:${isMedian?'#f0f6ff':'#f0f4f8'};${isMedian?'font-style:normal;color:var(--blue);font-weight:700':''}">${s}</td><td></td><td></td><td></td><td></td><td></td>`;
@@ -919,6 +1125,11 @@ function buildResTable(rows) {
       const val = statFn(colVals[i], s);
       const txt = val===null ? '—' : (c.cls==='coarse' ? Math.round(val)+'°' : val.toFixed(2));
       h+=`<td style="background:${isMedian?'#e8f0fc':c.sc.bg};color:${isMedian?'var(--blue)':'var(--navy)'}">${txt}</td>`;
+      if (c.cls === 'fine') {
+        const valPhi = statFn(colPhiPI[i], s);
+        const txtPhi = valPhi===null ? '—' : Math.round(valPhi)+'°';
+        h+=`<td style="background:${isMedian?'#e8f0fc':'#eaf6ec'};color:${isMedian?'var(--blue)':'#166534'}">${txtPhi}</td>`;
+      }
     });
     if (!cols.length) h+=`<td>—</td>`;
     h+='</tr>';
@@ -926,12 +1137,13 @@ function buildResTable(rows) {
   return h+'</tbody></table>';
 }
 
-function calcBoring(bkey) {
+function calcBoring(bkey, {silent=false}={}) {
   const rows = readBoringRows(bkey);
-  if (!rows.length) { alert(`No valid N values in this boring.`); return; }
+  if (!rows.length) { if (!silent) alert(`No valid N values in this boring.`); return; }
 
-  const phiV = rows.filter(r=>r.cls==='coarse').map(ssCalc).filter(v=>v!==null);
-  const suV  = rows.filter(r=>r.cls==='fine').map(ssCalc).filter(v=>v!==null);
+  const phiV   = rows.filter(r=>r.cls==='coarse').map(ssCalc).filter(v=>v!==null);
+  const suV    = rows.filter(r=>r.cls==='fine').map(ssCalc).filter(v=>v!==null);
+  const phiPIV = rows.filter(r=>r.cls==='fine').map(r=>r.phiPI).filter(v=>v!==null);
   const borLabel = document.getElementById(`blabel-${bkey}`)?.value || bkey;
 
   const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
@@ -943,6 +1155,9 @@ function calcBoring(bkey) {
   if (suV.length) pills += `<div class="pill fine"><div class="pill-label">Sᵤ Range (fine)</div>
       <div class="pill-value" style="font-size:13px">${Math.min(...suV).toFixed(2)} – ${Math.max(...suV).toFixed(2)}</div>
       <div class="pill-sub">ksf · mean ${avg(suV).toFixed(2)} · median ${arrMedian(suV).toFixed(2)} · ${suV.length} samp.</div></div>`;
+  if (phiPIV.length) pills += `<div class="pill" style="border-color:#86efac;background:#f0fdf4"><div class="pill-label" style="color:#166534">φ′(PI) Range (fine, drained)</div>
+      <div class="pill-value" style="font-size:13px;color:#166534">${Math.round(Math.min(...phiPIV))}° – ${Math.round(Math.max(...phiPIV))}°</div>
+      <div class="pill-sub">mean ${Math.round(avg(phiPIV))}° · median ${Math.round(arrMedian(phiPIV))}° · ${phiPIV.length} samp. w/ PI</div></div>`;
 
   document.getElementById(`bpills-${bkey}`).innerHTML = pills;
   document.getElementById(`btbl-${bkey}`).innerHTML = buildResTable(rows);
@@ -950,10 +1165,12 @@ function calcBoring(bkey) {
     `φ = 27.1 + 0.3·(N₁)₆₀ − 0.00054·(N₁)₆₀² &nbsp;(Peck, Hanson &amp; Thornburn 1974, coarse-grained). &nbsp;
      Sᵤ = (N₁)₆₀ / 7.5 ksf (fine-grained). &nbsp;
      C<sub>N</sub> = 0.77·log(20/σ′<sub>v,tsf</sub>) for coarse, fixed at 1.0 for fine. &nbsp;
-     C<sub>R</sub> rod-length correction per Skempton (1986).`;
+     C<sub>R</sub> rod-length correction per Skempton (1986). &nbsp;
+     φ′(PI) — drained friction angle from Plasticity Index, digitized trend line, Terzaghi/Peck/Mesri (1996) Fig. 19.7, fine-grained only, valid for PI ≤ ${PHI_PI_MAXIP}%.`;
   document.getElementById(`breslbl-${bkey}`).textContent = borLabel;
   document.getElementById(`bres-${bkey}`).classList.remove('hidden');
   buildBoringPlot(bkey, rows);
+  updatePIReferenceChart();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -961,14 +1178,43 @@ function calcBoring(bkey) {
 // ═══════════════════════════════════════════════════════════════════════════
 function generateSummary() {
   if (!Object.keys(strata).length) { alert('No strata defined.'); return; }
-  const all=[];
+
+  // ── Boring filter pills ────────────────────────────────────────────────────
+  const filterPills = sortedBoringKeys().map(bkey => {
+    const lbl = escHtml(document.getElementById(`blabel-${bkey}`)?.value || bkey);
+    const excl = summaryExcluded.has(bkey);
+    return `<button onclick="toggleSummaryBoring('${bkey}')" style="
+      padding:4px 12px;font-size:11px;font-family:var(--sans);font-weight:600;border-radius:20px;
+      cursor:pointer;transition:all .12s;border:1px solid;
+      background:${excl?'#f0f4f8':'var(--blue)'};
+      color:${excl?'var(--muted)':'#fff'};
+      border-color:${excl?'var(--border)':'var(--blue)'};
+      text-decoration:${excl?'line-through':'none'};
+      opacity:${excl?'0.65':'1'};
+    " title="${excl?'Click to include in summary':'Click to exclude from summary'}">${lbl}</button>`;
+  }).join('');
+  const filterRow = `<div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#f4f8fc;border:1px solid var(--border);border-radius:3px">
+    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);white-space:nowrap">Borings in Summary</span>
+    ${filterPills}
+    <button onclick="toggleAllSummaryBorings()" style="
+      padding:4px 10px;font-size:10px;font-family:var(--sans);font-weight:600;border-radius:20px;
+      cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted);
+      margin-left:4px;white-space:nowrap;
+    " title="${summaryExcluded.size===0?'Click to exclude all borings':'Click to include all borings'}">${summaryExcluded.size===0?'None':'All'}</button>
+    ${summaryExcluded.size>0?`<span style="font-size:10.5px;color:var(--muted);margin-left:4px">(${boringKeys.length-summaryExcluded.size} of ${boringKeys.length} included)</span>`:''}
+  </div>`;
+
+  const all = [];
+  const allN = []; // includes excl-checked rows — used for N Range/Avg and (N₁)₆₀ Range/Avg
   boringKeys.forEach(bkey => {
+    if (summaryExcluded.has(bkey)) return;
     const blabel = document.getElementById(`blabel-${bkey}`)?.value || bkey;
-    readBoringRows(bkey).forEach(r => all.push({...r, boringLabel:blabel, bkey}));
+    readBoringRows(bkey).forEach(r => all.push({...r, boringLabel: blabel, bkey}));
+    readBoringRows(bkey, true).forEach(r => allN.push({...r, boringLabel: blabel, bkey}));
   });
 
   const kSel = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Reliability Factor k</span>
+    <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Reliability Factor k</span><span title="k is engineer-selected — it is not derived from the input data. The associated percentiles assume the strength population is approximately normally distributed (e.g., k = 1.0 → Mean − 1σ ≈ 16th percentile)." style="margin-left:4px;cursor:help;color:var(--accent);font-size:12px;font-weight:700;font-family:var(--sans)">ⓘ</span>
     <select id="kFactorSel" style="padding:5px 10px;font-size:12px;border:1px solid var(--border);border-radius:3px;font-family:var(--mono)"
       onchange="kFactor=parseFloat(this.value);generateSummary()">
       <option value="0" ${kFactor===0?'selected':''}>0 — Mean (50th pct)</option>
@@ -981,76 +1227,168 @@ function generateSummary() {
     <span style="margin-left:8px;font-size:10.5px;color:var(--muted)">COV: <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700">&lt;20% Low</span> <span style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700">20–40% Mod</span> <span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700">&gt;40% High</span></span>
   </div>`;
 
-  let html=kSel+`<div class="tbl-wrap"><table class="sum-tbl">
-    <thead><tr>
-      <th>Stratum</th><th>Soil Class</th><th style="text-align:center">γ (pcf)</th>
-      <th>Borings w/ Data</th><th style="text-align:center">n</th>
-      <th style="text-align:center">N Range</th>
-      <th style="text-align:center">(N₁)₆₀ Avg</th>
-      <th style="text-align:center">Min</th>
-      <th style="text-align:center">Max</th>
-      <th style="text-align:center">Mean</th>
-      <th style="text-align:center">Median</th>
-      <th style="text-align:center">Std Dev</th>
-      <th style="text-align:center">COV</th>
-      <th style="text-align:center">Suggested DV</th>
-      <th style="text-align:center;min-width:140px">Design Value</th>
-    </tr></thead><tbody>`;
+  // ── Precompute per-stratum statistics ──────────────────────────────────────
+  const fmtDeg = v => v===null||v===undefined ? '—' : Math.round(v)+'°';
+  const fmtKsf = v => v===null||v===undefined ? '—' : v.toFixed(2);
+  const sdFmtDeg = sd => sd.toFixed(1)+'°';
+  const sdFmtKsf = sd => sd.toFixed(3)+' ksf';
+  const avg = arr => arr.length ? arr.reduce((a,b) => a+b) / arr.length : null;
+  function statBlock(vals, fmtV, sdFmt, sk, dvStore) {
+    const mean = avg(vals), med = arrMedian(vals), sd = arrStdDev(vals), cov = arrCOV(vals);
+    const sugg = (mean !== null && sd !== null) ? mean - kFactor*sd : mean;
+    const dv   = dvStore[sk] || '';
+    const sdTxt  = sd !== null ? sdFmt(sd) : (vals.length===1 ? 'n/a' : '—');
+    const sugTxt = sugg !== null ? fmtV(Math.max(sugg, 0)) : '—';
+    const sugNote = (mean !== null && sd !== null && kFactor > 0)
+      ? `title="Mean − ${kFactor}·σ = ${fmtV(Math.max(sugg,0))}"` : '';
+    return { vals, mean, med, sd, cov, sugg, sugTxt, sdTxt, sugNote, dv, fmtV };
+  }
 
-  Object.entries(strata).forEach(([sk, st]) => {
-    const samps = all.filter(s => s.stratKey === sk);
-    const bors  = [...new Set(samps.map(s=>s.boringLabel))];
-    const Ns    = samps.map(s=>s.N).filter(Boolean);
-    const N160s = samps.map(s=>s.N160).filter(v=>v!==null&&v!==undefined);
-    const cls   = SOIL_CLS[st.soilType] || null;
-    const vals  = samps.map(ssCalc).filter(v=>v!==null);
-    const unit  = cls==='coarse' ? '°' : (cls==='fine' ? ' ksf' : '');
-    const fmtV  = v => v===null ? '—' : (cls==='coarse' ? Math.round(v)+'°' : v.toFixed(2));
-    const avg   = arr => arr.length ? arr.reduce((a,b)=>a+b)/arr.length : null;
+  const stratEntries = Object.entries(strata);
+  const SS = stratEntries.map(([sk, st]) => {
+    const samps  = all.filter(s => s.stratKey === sk);
+    const allSampsN = allN.filter(s => s.stratKey === sk); // all rows incl. excl-checked
+    const bors   = [...new Set(samps.map(s => s.boringLabel))]
+                    .sort((a,b) => naturalSortKey(a.toUpperCase()).localeCompare(naturalSortKey(b.toUpperCase())));
+    const Ns     = allSampsN.map(s => s.N).filter(Boolean);
+    const N160s  = allSampsN.map(s => s.N160).filter(v => v != null);
+    const cls    = SOIL_CLS[st.soilType] || null;
+    const vals   = samps.map(ssCalc).filter(v => v !== null); // phi (coarse) or Su (fine) — N-based, unchanged path
     const avgN160 = avg(N160s);
-    const mean  = avg(vals);
-    const med   = arrMedian(vals);
-    const sd    = arrStdDev(vals);
-    const cov   = arrCOV(vals);
-    const suggested = (mean !== null && sd !== null) ? mean - kFactor*sd : (mean !== null ? mean : null);
-    const dv    = designValues[sk] || '';
-    const dvUnit = cls==='coarse' ? 'deg' : (cls==='fine' ? 'ksf' : '');
-    const sdTxt = sd !== null ? (cls==='coarse' ? sd.toFixed(1)+'°' : sd.toFixed(3)+' ksf') : (vals.length===1?'n/a':'—');
-    const sugTxt = suggested !== null ? fmtV(Math.max(suggested, 0)) : '—';
-    const sugNote = (mean !== null && sd !== null && kFactor > 0) ? `title="Mean${kFactor>0?` − ${kFactor}·σ`:''}${cls==='coarse'?` = ${Math.round(Math.max(suggested,0))}°`:` = ${Math.max(suggested,0).toFixed(2)} ksf`}"` : '';
-    html+=`<tr>
-      <td><strong>${st.label||sk}</strong></td>
-      <td>${st.soilType?clsBadge(st.soilType):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono)">${st.gamma}</td>
-      <td style="font-size:11px">${bors.length?bors.join(', '):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono)">${samps.length||'—'}</td>
-      <td style="text-align:center;font-family:var(--mono)">${Ns.length?`${Math.min(...Ns)} – ${Math.max(...Ns)}`:'—'}</td>
-      <td style="text-align:center;font-family:var(--mono);font-weight:600;color:var(--navy2)">${avgN160!==null?avgN160.toFixed(1):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono);color:${cls==='coarse'?'var(--gc)':'var(--gn)'}">${vals.length?fmtV(Math.min(...vals)):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono);color:${cls==='coarse'?'var(--gc)':'var(--gn)'}">${vals.length?fmtV(Math.max(...vals)):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono)">${mean!==null?fmtV(mean):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono);color:var(--blue);font-weight:600">${med!==null?fmtV(med):'—'}</td>
-      <td style="text-align:center;font-family:var(--mono);color:var(--muted)">${sdTxt}</td>
-      <td style="text-align:center">${covBadge(cov)}</td>
-      <td style="text-align:center;font-family:var(--mono);font-weight:600;color:var(--amber)" ${sugNote}>${sugTxt}</td>
-      <td style="text-align:center;white-space:nowrap">
-        <input type="number" class="dv-input" step="${cls==='coarse'?'0.5':'0.05'}" value="${dv}" placeholder="enter value"
-          onchange="designValues['${sk}']=this.value"> <span style="font-size:10px;color:var(--muted)">${dvUnit}</span>
-      </td>
-    </tr>`;
+    const avgN    = avg(Ns);
+    // PI-based drained φ′ — fine-grained only, independent of the N-based metric above
+    const PIvals    = cls==='fine' ? allSampsN.map(s=>s.PI).filter(v=>v!=null) : [];
+    const phiPIvals = cls==='fine' ? samps.map(s=>s.phiPI).filter(v=>v!=null) : [];
+    const avgPI     = avg(PIvals);
+
+    // primary = the N-based column (φ for coarse, Sᵤ for fine); secondary = φ′(PI), fine only
+    const primary   = statBlock(vals, cls==='coarse'?fmtDeg:fmtKsf, cls==='coarse'?sdFmtDeg:sdFmtKsf, sk, designValues);
+    const secondary = cls==='fine' ? statBlock(phiPIvals, fmtDeg, sdFmtDeg, sk, designValuesPhiPI) : null;
+    const dvUnit = cls==='coarse' ? 'deg' : (cls==='fine' ? 'ksf' : ''); // primary column's unit (legacy field, still used by CSV export)
+
+    return { sk, st, cls, bors, samps, Ns, avgN, N160s, avgN160, vals, dvUnit, PIvals, phiPIvals, avgPI, primary, secondary };
   });
 
-  html+=`</tbody></table></div>
-    <div class="tbl-note" style="margin-top:10px;line-height:2">
-      <div>⬩ Strength = φ (deg) for coarse-grained strata, S<sub>u</sub> (ksf) for fine-grained strata. Statistics computed over all included samples assigned to each stratum.</div>
-      <div>⬩ <strong>Median</strong> is highlighted in blue. A Mean &gt; Median gap signals right-skewed data driven by high-N outliers — in that case, the median may be a more representative central tendency than the mean.</div>
-      <div>⬩ <strong>COV</strong> (Coefficient of Variation = σ / Mean): &lt;20% = low variability (mean is reliable); 20–40% = moderate (consider a conservative percentile); &gt;40% = high (investigate possible mixed lithology or outliers).</div>
-      <div>⬩ <strong>Suggested DV = Mean − k·σ.</strong> The k-factor controls how far below the mean the suggestion lands: k = 0 → mean (50th pct); k = 1.0 → ~16th pct; k = 1.645 → ~5th pct. Higher k = more conservative. Adjust using the selector above.</div>
-      <div>⬩ Design values are user-defined — enter based on engineering judgment considering the range, variability, and governing analysis. Run <strong>Calculate</strong> in each boring tab before generating the summary.</div>
-    </div>`;
+  // ── Column headers — one per stratum; fine strata get Sᵤ | φ′ sub-columns ──
+  let headRow1 = `<tr><th class="sum-corner" rowspan="2">Metric</th>`;
+  SS.forEach(({st, sk, cls}) => {
+    const ci  = st.colorIdx || 0;
+    const sc  = STRAT_COLORS[ci % STRAT_COLORS.length];
+    const lbl = escHtml(st.label || sk);
+    const desc = st.desc
+      ? `<div style="font-weight:400;font-size:9.5px;opacity:.75;margin-top:3px;line-height:1.3">${escHtml(st.desc)}</div>`
+      : '';
+    const span = cls==='fine' ? 2 : 1;
+    headRow1 += `<th colspan="${span}" style="text-align:center;background:${sc.bg};color:var(--navy);border:1px solid var(--border);border-top:3px solid ${sc.br};padding:7px 8px">${lbl}${desc}</th>`;
+  });
+  headRow1 += '</tr>';
+  let headRow2 = '<tr>';
+  SS.forEach(({cls}) => {
+    if (cls === 'fine') {
+      headRow2 += `<th style="text-align:center;background:#eef4fb;color:var(--navy);font-weight:600;font-size:10px;border:1px solid var(--border)">Sᵤ (ksf)</th>`;
+      headRow2 += `<th style="text-align:center;background:#eaf6ec;color:#166534;font-weight:600;font-size:10px;border:1px solid var(--border)">φ′ (deg)</th>`;
+    } else if (cls === 'coarse') {
+      headRow2 += `<th style="text-align:center;background:#fdf3e5;color:var(--navy);font-weight:600;font-size:10px;border:1px solid var(--border)">φ (deg)</th>`;
+    } else {
+      headRow2 += `<th style="border:1px solid var(--border)"></th>`;
+    }
+  });
+  headRow2 += '</tr>';
+  const headRow = headRow1 + headRow2;
+
+  // ── Row definitions [label, render(s), rowClass] ──────────────────────────
+  // kind: 'span' = one cell across the stratum's column(s); 'split' = separate
+  // Sᵤ-cell and φ′-cell for fine strata (single cell, using `primary`, for coarse)
+  const ROWS = [
+    ['Soil Class',      'span',  s => s.st.soilType ? clsBadge(s.st.soilType) : '—',  ''],
+    ['γ (pcf)',         'span',  s => `<span style="font-family:var(--mono)">${s.st.gamma}</span>`, ''],
+    ['Borings w/ Data', 'span',  s => `<span style="font-size:10.5px;line-height:1.5">${s.bors.length ? s.bors.join(', ') : '—'}</span>`, ''],
+    ['No. of Samples',  'span',  s => `<span style="font-family:var(--mono)">${s.samps.length || '—'}</span>`, ''],
+    ['N Range',         'span',  s => `<span style="font-family:var(--mono)">${s.Ns.length ? `${Math.min(...s.Ns)} – ${Math.max(...s.Ns)}` : '—'}</span>`, ''],
+    ['N Avg',           'span',  s => `<span style="font-family:var(--mono);font-weight:600;color:var(--navy2)">${s.avgN !== null ? s.avgN.toFixed(1) : '—'}</span>`, ''],
+    ['(N₁)₆₀ Range',   'span',  s => `<span style="font-family:var(--mono)">${s.N160s.length ? `${Math.min(...s.N160s).toFixed(1)} – ${Math.max(...s.N160s).toFixed(1)}` : '—'}</span>`, ''],
+    ['(N₁)₆₀ Avg',     'span',  s => `<span style="font-family:var(--mono);font-weight:600;color:var(--navy2)">${s.avgN160 !== null ? s.avgN160.toFixed(1) : '—'}</span>`, ''],
+    ['PI Range (%)',    'pi',    s => `<span style="font-family:var(--mono)">${s.PIvals.length ? `${Math.min(...s.PIvals).toFixed(0)} – ${Math.max(...s.PIvals).toFixed(0)}` : '—'}</span>`, ''],
+    ['PI Avg (%)',      'pi',    s => `<span style="font-family:var(--mono);font-weight:600;color:var(--navy2)">${s.avgPI !== null ? s.avgPI.toFixed(0) : '—'}</span>`, ''],
+    ['Min',             'split', (st,cls) => `<span style="font-family:var(--mono);color:${cls==='coarse'||cls==='phi'?'var(--gc)':'var(--gn)'}">${st.vals.length ? st.fmtV(Math.min(...st.vals)) : '—'}</span>`, ''],
+    ['Max',             'split', (st,cls) => `<span style="font-family:var(--mono);color:${cls==='coarse'||cls==='phi'?'var(--gc)':'var(--gn)'}">${st.vals.length ? st.fmtV(Math.max(...st.vals)) : '—'}</span>`, ''],
+    ['Mean',            'split', (st) => `<span style="font-family:var(--mono)">${st.mean !== null ? st.fmtV(st.mean) : '—'}</span>`, ''],
+    ['Median',          'split', (st) => `<span style="font-family:var(--mono);color:var(--blue);font-weight:600">${st.med !== null ? st.fmtV(st.med) : '—'}</span>`, ''],
+    ['Std Dev',         'split', (st) => `<span style="font-family:var(--mono);color:var(--muted)">${st.sdTxt}</span>`, ''],
+    ['COV',             'split', (st) => covBadge(st.cov), ''],
+    ['Suggested DV',    'split', (st) => `<span style="font-family:var(--mono);font-weight:600;color:var(--amber)" ${st.sugNote}>${st.sugTxt}</span>`, ''],
+    ['Design Value',    'dv',    null, 'dv-row'],
+  ];
+
+  let bodyRows = '';
+  ROWS.forEach(([label, kind, render, rowCls], i) => {
+    const isDvRow = rowCls === 'dv-row';
+    const trCls   = isDvRow ? ' class="dv-row"' : '';
+    const zebra   = (!isDvRow && i % 2 === 1) ? 'background:#f8fafc;' : '';
+    const cells = SS.map(s => {
+      if (kind === 'span') {
+        const span = s.cls==='fine' ? 2 : 1;
+        return `<td colspan="${span}" style="${zebra}padding:5px 8px">${render(s)}</td>`;
+      }
+      if (kind === 'pi') {
+        // PI input stats only mean anything on the φ′ side; blank Sᵤ-cell for fine, single blank for coarse
+        if (s.cls === 'fine') return `<td style="${zebra}padding:5px 8px;color:#ccc">—</td><td style="${zebra}padding:5px 8px;background:#f4faf5">${render(s)}</td>`;
+        return `<td style="${zebra}padding:5px 8px;color:#ccc">—</td>`;
+      }
+      if (kind === 'dv') {
+        if (s.cls === 'fine') {
+          const suCell  = `<input type="number" class="dv-input" style="width:76px" step="0.05" value="${s.primary.dv}" placeholder="—" onchange="designValues['${s.sk}']=this.value"> <span style="font-size:10px;color:var(--muted)">ksf</span>`;
+          const phiCell = `<input type="number" class="dv-input" style="width:66px" step="0.5" value="${s.secondary.dv}" placeholder="—" onchange="designValuesPhiPI['${s.sk}']=this.value"> <span style="font-size:10px;color:var(--muted)">deg</span>`;
+          return `<td style="${zebra}padding:5px 8px"><span style="white-space:nowrap">${suCell}</span></td><td style="${zebra}padding:5px 8px;background:#f4faf5"><span style="white-space:nowrap">${phiCell}</span></td>`;
+        }
+        const cell = s.cls==='coarse'
+          ? `<input type="number" class="dv-input" style="width:80px" step="0.5" value="${s.primary.dv}" placeholder="—" onchange="designValues['${s.sk}']=this.value"> <span style="font-size:10px;color:var(--muted)">deg</span>`
+          : '—';
+        return `<td style="${zebra}padding:5px 8px"><span style="white-space:nowrap">${cell}</span></td>`;
+      }
+      // kind === 'split': fine gets Sᵤ-cell (primary) + φ′-cell (secondary); coarse gets one cell (primary)
+      if (s.cls === 'fine') {
+        return `<td style="${zebra}padding:5px 8px">${render(s.primary,'su')}</td><td style="${zebra}padding:5px 8px;background:#f4faf5">${render(s.secondary,'phi')}</td>`;
+      }
+      return `<td style="${zebra}padding:5px 8px">${render(s.primary, s.cls)}</td>`;
+    }).join('');
+    bodyRows += `<tr${trCls}><th class="sum-rh">${label}</th>${cells}</tr>`;
+  });
+
+  const html = filterRow + kSel + `<div class="tbl-wrap"><table class="sum-tbl transposed">
+    <thead>${headRow}</thead>
+    <tbody>${bodyRows}</tbody>
+  </table></div>
+  <div class="tbl-note" style="margin-top:10px;line-height:2">
+    <div>⬩ <strong>Sᵤ</strong> (undrained, N-based) and <strong>φ</strong>/<strong>φ′</strong> (coarse: N-based; fine: drained, from Plasticity Index via the digitized trend line of Terzaghi, Peck &amp; Mesri (1996) Fig. 19.7) are computed independently — a fine-grained stratum's Sᵤ and φ′ columns draw on different input data (N-value vs. PI) and can have different sample counts. φ′(PI) valid for PI ≤ ${PHI_PI_MAXIP}%; samples above that are excluded from these stats pending manual comparison to the reference plate.</div>
+    <div>⬩ <strong>Median</strong> is highlighted in blue. A Mean &gt; Median gap signals right-skewed data driven by high-N outliers — in that case, the median may be a more representative central tendency than the mean.</div>
+    <div>⬩ <strong>COV</strong> (Coefficient of Variation = σ / Mean): &lt;20% = low variability (mean is reliable); 20–40% = moderate (consider a conservative percentile); &gt;40% = high (investigate possible mixed lithology or outliers).</div>
+    <div>⬩ <strong>Suggested DV = Mean − k·σ.</strong> k is engineer-selected (not derived from the data). The percentile equivalents assume an approximately normal distribution: k = 0 → mean (50th pct); k = 1.0 → ~16th pct; k = 1.645 → ~5th pct. Higher k = more conservative. Adjust using the selector above.</div>
+    <div>⬩ Design values are user-defined — enter based on engineering judgment considering the range, variability, and governing analysis. Run <strong>Calculate</strong> in each boring tab before generating the summary.</div>
+  </div>`;
 
   document.getElementById('summaryContent').innerHTML = html;
+  cachedSummaryAll = all;
   buildSummaryPlot(all);
+  updatePIReferenceChart();
+}
+
+function toggleSummaryBoring(bkey) {
+  if (summaryExcluded.has(bkey)) summaryExcluded.delete(bkey);
+  else { summaryExcluded.add(bkey); plotExcluded.delete(bkey); }
+  generateSummary();
+}
+
+function toggleAllSummaryBorings() {
+  if (summaryExcluded.size === 0) { boringKeys.forEach(k => { summaryExcluded.add(k); plotExcluded.delete(k); }); }
+  else summaryExcluded.clear();
+  generateSummary();
+}
+
+function togglePlotBoring(bkey) {
+  if (plotExcluded.has(bkey)) plotExcluded.delete(bkey);
+  else plotExcluded.add(bkey);
+  buildSummaryPlot(cachedSummaryAll);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1061,16 +1399,17 @@ function exportBoringCSV(bkey) {
   if (!rows.length) { alert('No data to export.'); return; }
   const blabel = document.getElementById(`blabel-${bkey}`)?.value || bkey;
   const hdrs = ['Boring','Sample #','Depth Top (ft)','Depth Bot (ft)','Soil Class',
-    'N','sigv_tsf','C_N','C_E','C_R','N60','(N1)60','phi (deg)','Su (ksf)'];
+    'N','sigv_tsf','C_N','C_E','C_R','N60','(N1)60','phi (deg)','Su (ksf)','PI (%)',"phi'(PI) (deg)"];
   const body = rows.map(r => {
     const bot = (r.dep&&r.len)?(r.dep+r.len/12).toFixed(2):'';
     const v = ssCalc(r);
     const phi = (r.cls==='coarse'&&v!==null)?Math.round(v):'';
     const su  = (r.cls==='fine'&&v!==null)?v.toFixed(2):'';
+    const phiPI = r.phiPI!==null ? Math.round(r.phiPI) : '';
     return [blabel,r.rowNum,r.dep||'',bot,r.cls||'',
       r.N,r.sigV!==null?r.sigV.toFixed(2):'',r.CN!==null?r.CN.toFixed(2):'',
       r.CE?r.CE.toFixed(2):'',r.CR?r.CR.toFixed(2):'',r.N60?r.N60.toFixed(1):'',r.N160!==null?r.N160.toFixed(1):'',
-      phi,su].join(',');
+      phi,su,r.PI!==null?r.PI:'',phiPI].join(',');
   });
   dl([hdrs.join(','),...body].join('\n'), `ShearStrength_${blabel.replace(/\s/g,'_')}.csv`);
 }
@@ -1082,19 +1421,29 @@ function exportSummaryCSV() {
     const blabel=document.getElementById(`blabel-${bkey}`)?.value||bkey;
     readBoringRows(bkey).forEach(r=>all.push({...r,boringLabel:blabel}));
   });
-  const hdrs=['Stratum','Soil Class','gamma (pcf)','Borings','n','N Min','N Max','(N1)60 Avg','Strength Min','Strength Max','Mean','Median','Std Dev','COV','Suggested DV (k='+kFactor+')','Unit','Design Value'];
+  const hdrs=['Stratum','Soil Class','gamma (pcf)','Borings','n','N Min','N Max','(N1)60 Avg',
+    'Strength Min','Strength Max','Strength Mean','Strength Median','Strength Std Dev','Strength COV',
+    'Strength Suggested DV (k='+kFactor+')','Strength Unit','Strength Design Value',
+    'PI Min (%)','PI Max (%)','PI Avg (%)',
+    "phi'(PI) Min (deg)","phi'(PI) Max (deg)","phi'(PI) Mean (deg)","phi'(PI) Median (deg)","phi'(PI) Std Dev (deg)","phi'(PI) COV",
+    "phi'(PI) Suggested DV (deg, k="+kFactor+')',"phi'(PI) Design Value (deg)"];
   const body=Object.entries(strata).map(([sk,st])=>{
     const samps=all.filter(s=>s.stratKey===sk);
     const cls = SOIL_CLS[st.soilType]||null;
     const bors=[...new Set(samps.map(s=>s.boringLabel))];
     const Ns=samps.map(s=>s.N).filter(Boolean);
     const N160s=samps.map(s=>s.N160).filter(v=>v!=null);
-    const vals=samps.map(ssCalc).filter(v=>v!==null);
+    const vals=samps.map(ssCalc).filter(v=>v!==null); // phi (coarse) or Su (fine) — N-based
     const avg=arr=>arr.length?(arr.reduce((a,b)=>a+b)/arr.length):null;
     const unit = cls==='coarse'?'deg':(cls==='fine'?'ksf':'');
     const fmtV = v => v===null?'':(cls==='coarse'?Math.round(v):v.toFixed(3));
     const mean=avg(vals), sd=arrStdDev(vals), cov=arrCOV(vals), med=arrMedian(vals);
     const sug=(mean!==null&&sd!==null)?Math.max(mean-kFactor*sd,0):(mean||'');
+    // PI-based drained phi' — fine-grained only, independent of the N-based columns above
+    const PIvals = cls==='fine' ? samps.map(s=>s.PI).filter(v=>v!=null) : [];
+    const phiPIvals = cls==='fine' ? samps.map(s=>s.phiPI).filter(v=>v!=null) : [];
+    const meanPhi=avg(phiPIvals), sdPhi=arrStdDev(phiPIvals), covPhi=arrCOV(phiPIvals), medPhi=arrMedian(phiPIvals);
+    const sugPhi=(meanPhi!==null&&sdPhi!==null)?Math.max(meanPhi-kFactor*sdPhi,0):(meanPhi||'');
     return [st.label||sk,cls||'',st.gamma,bors.join('; '),samps.length,
       Ns.length?Math.min(...Ns):'',Ns.length?Math.max(...Ns):'',
       avg(N160s)!==null?avg(N160s).toFixed(1):'',
@@ -1102,7 +1451,18 @@ function exportSummaryCSV() {
       mean!==null?fmtV(mean):'',med!==null?fmtV(med):'',
       sd!==null?fmtV(sd):'',cov!==null?(cov*100).toFixed(1)+'%':'',
       sug!==''?fmtV(typeof sug==='number'?sug:null):'',
-      unit,designValues[sk]||''
+      unit,designValues[sk]||'',
+      PIvals.length?Math.min(...PIvals).toFixed(0):'',
+      PIvals.length?Math.max(...PIvals).toFixed(0):'',
+      PIvals.length?avg(PIvals).toFixed(1):'',
+      phiPIvals.length?Math.round(Math.min(...phiPIvals)):'',
+      phiPIvals.length?Math.round(Math.max(...phiPIvals)):'',
+      meanPhi!==null?Math.round(meanPhi):'',
+      medPhi!==null?Math.round(medPhi):'',
+      sdPhi!==null?sdPhi.toFixed(1):'',
+      covPhi!==null?(covPhi*100).toFixed(1)+'%':'',
+      sugPhi!==''?Math.round(sugPhi):'',
+      designValuesPhiPI[sk]||''
     ].join(',');
   });
   dl([hdrs.join(','),...body].join('\n'), 'ShearStrength_Summary.csv');
@@ -1146,6 +1506,7 @@ function saveProject() {
         stratKey:    document.getElementById(`strat-${bkey}-${r}`)?.value || '',
         stratManual: document.getElementById(`strat-${bkey}-${r}`)?.dataset?.manual || '',
         N:           document.getElementById(`nval-${bkey}-${r}`)?.value  || '',
+        PI:          document.getElementById(`pi-${bkey}-${r}`)?.value    || '',
         excl:        document.getElementById(`excl-${bkey}-${r}`)?.checked || false,
       })),
     };
@@ -1153,13 +1514,19 @@ function saveProject() {
   const state = {
     version: 1, kind: 'shear-strength',
     savedAt: new Date().toISOString(),
-    projName: document.getElementById('projName')?.value || '',
-    projNo:   document.getElementById('projNo')?.value   || '',
+    projName:     document.getElementById('projName')?.value     || '',
+    projNo:       document.getElementById('projNo')?.value       || '',
+    projPrepBy:   document.getElementById('projPrepBy')?.value   || '',
+    projPrepDate: document.getElementById('projPrepDate')?.value || '',
+    projChkBy:    document.getElementById('projChkBy')?.value    || '',
+    projChkDate:  document.getElementById('projChkDate')?.value  || '',
     globalParams: { gw: document.getElementById('inpGw')?.value || '62.4' },
     nextSK, nextBK,
-    strata:       JSON.parse(JSON.stringify(strata)),
-    borings:      borData,
-    designValues: JSON.parse(JSON.stringify(designValues)),
+    strata:          JSON.parse(JSON.stringify(strata)),
+    borings:         borData,
+    designValues:    JSON.parse(JSON.stringify(designValues)),
+    designValuesPhiPI: JSON.parse(JSON.stringify(designValuesPhiPI)),
+    summaryExcluded: [...summaryExcluded],
   };
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -1196,13 +1563,19 @@ function restoreState(state) {
   });
   boringKeys.length = 0;
   Object.keys(designValues).forEach(k => delete designValues[k]);
+  Object.keys(designValuesPhiPI).forEach(k => delete designValuesPhiPI[k]);
+  summaryExcluded.clear();
   document.getElementById('summaryContent').innerHTML = '';
 
   nextSK = state.nextSK || 1;
   nextBK = state.nextBK || 1;
 
-  const pn = document.getElementById('projName'); if (pn) pn.value = state.projName || '';
-  const po = document.getElementById('projNo');   if (po) po.value = state.projNo   || '';
+  const pn = document.getElementById('projName');     if (pn) pn.value = state.projName     || '';
+  const po = document.getElementById('projNo');       if (po) po.value = state.projNo       || '';
+  const pp = document.getElementById('projPrepBy');   if (pp) pp.value = state.projPrepBy   || '';
+  const pd = document.getElementById('projPrepDate'); if (pd) pd.value = state.projPrepDate || '';
+  const pc = document.getElementById('projChkBy');    if (pc) pc.value = state.projChkBy    || '';
+  const cd = document.getElementById('projChkDate');  if (cd) cd.value = state.projChkDate  || '';
 
   const gp = state.globalParams || {};
   if (gp.gw !== undefined) { const el=document.getElementById('inpGw'); if(el) el.value = gp.gw; }
@@ -1258,18 +1631,23 @@ function restoreState(state) {
       sv(`dep-${bkey}-${r}`,  s.dep);
       sv(`len-${bkey}-${r}`,  s.len);
       sv(`nval-${bkey}-${r}`, s.N);
+      sv(`pi-${bkey}-${r}`,   s.PI); // pre-PI-feature files have no s.PI — sv() no-ops on undefined, field stays blank
       const ss = document.getElementById(`strat-${bkey}-${r}`);
       if (ss) { ss.value = s.stratKey||''; ss.dataset.manual = s.stratManual||''; }
       const ex = document.getElementById(`excl-${bkey}-${r}`);
       if (ex) { ex.checked = s.excl||false; if(s.excl) toggleExclude(bkey, r); }
     });
     recalcBoring(bkey);
+    calcBoring(bkey, {silent:true});
   }
 
   Object.assign(designValues, state.designValues || {});
+  Object.assign(designValuesPhiPI, state.designValuesPhiPI || {});
+  (state.summaryExcluded || []).forEach(k => summaryExcluded.add(k));
   if (boringKeys.length) {
-    switchTab(boringKeys[0]);
-    boringKeys.forEach(bkey => document.getElementById(`bres-${bkey}`)?.classList.add('hidden'));
+    sortTabBar();
+    switchTab(sortedBoringKeys()[0]);
+    if (Object.keys(strata).length) generateSummary();
   }
 }
 
@@ -1340,16 +1718,18 @@ function makeSvgBase(VW, VH, ML, MR, MT, MB, xMax, yLo, yHi, useElev, xLabelFmt)
 
 // Build a single strength-vs-depth SVG for one class ('coarse' or 'fine')
 function buildClassPlot(pts, cls, useElev, yLo, yHi, titlePrefix) {
-  const isPhi = cls==='coarse';
+  const isPhi = cls==='coarse'; // merged friction-angle chart: SPT-correlated (coarse) + PI-correlated (fine, drained)
   const col   = isPhi ? {line:'#b5781f', mark:'#8a5300'} : {line:'#2a93a6', mark:'#0e5b6b'};
-  const xLabel= isPhi ? 'Friction Angle, φ (deg)' : 'Undrained Shear Strength, Sᵤ (ksf)';
+  const xLabel= isPhi ? 'Friction Angle, φ / φ′ (deg)' : 'Undrained Shear Strength, Sᵤ (ksf)';
   const xfmt  = isPhi ? (e=>Math.round(e)) : (e=>e.toFixed(e<1?2:1));
   const VW=650, VH=700, ML=70, MR=22, MT=40, MB=64;
 
   const cp = pts.filter(p=>p.cls===cls && p.val!==null);
+  const headTxt  = isPhi ? 'Friction Angle Profile' : 'Sᵤ Profile (undrained)';
+  const emptyTxt = isPhi ? 'No friction-angle data (SPT- or PI-correlated).' : 'No fine-grained samples.';
   if (!cp.length) {
-    return `<div class="card" style="margin:0"><div class="card-head"><div class="card-head-l"><div class="dot"></div>${titlePrefix} ${isPhi?'φ Profile':'Sᵤ Profile'}</div></div>
-      <div class="card-body"><div class="plot-note">No ${isPhi?'coarse-grained':'fine-grained'} samples.</div></div></div>`;
+    return `<div class="card" style="margin:0"><div class="card-head"><div class="card-head-l"><div class="dot"></div>${titlePrefix} ${headTxt}</div></div>
+      <div class="card-body"><div class="plot-note">${emptyTxt}</div></div></div>`;
   }
 
   const allX = cp.map(p=>p.val);
@@ -1359,38 +1739,48 @@ function buildClassPlot(pts, cls, useElev, yLo, yHi, titlePrefix) {
 
   const { s: grid, sx, sy, PH } = makeSvgBase(VW, VH, ML, MR, MT, MB, xMax, yLo, yHi, useElev, xfmt);
   let data = '';
-  // connecting line (segment colored by "from" point's stratum)
+  const hasPISeries = cp.some(p=>p.source==='PI');
+  // connecting line — only between consecutive points from the SAME correlation
+  // source, so an SPT-φ point is never visually linked to a PI-φ′ point
   for (let i=1;i<cp.length;i++){
+    if ((cp[i-1].source||null) !== (cp[i].source||null)) continue;
     const segCol = cp[i-1].sc ? cp[i-1].sc.br : col.line;
-    data += `<line x1="${sx(cp[i-1].val)}" y1="${sy(cp[i-1].yVal)}" x2="${sx(cp[i].val)}" y2="${sy(cp[i].yVal)}" stroke="${segCol}" stroke-width="2" opacity="0.75"/>`;
+    data += `<line x1="${sx(cp[i-1].val)}" y1="${sy(cp[i-1].yVal)}" x2="${sx(cp[i].val)}" y2="${sy(cp[i].yVal)}" stroke="${segCol}" stroke-width="2" opacity="0.75" stroke-dasharray="${cp[i-1].source==='PI'?'4,3':''}"/>`;
   }
-  // markers + hit targets (filled with stratum color)
+  // markers + hit targets (filled with stratum color; PI-correlated points drawn as a hollow diamond)
   cp.forEach(p=>{
     const x=sx(p.val), yp=sy(p.yVal);
     const fill = p.sc ? p.sc.bg : col.mark;
     const edge = p.sc ? p.sc.br : col.mark;
-    data += `<circle cx="${x}" cy="${yp}" r="4.5" fill="${fill}" stroke="${edge}" stroke-width="1.8"/>`;
+    if (p.source === 'PI') {
+      const r=5.5;
+      data += `<polygon points="${x},${yp-r} ${x+r},${yp} ${x},${yp+r} ${x-r},${yp}" fill="#fff" stroke="${edge}" stroke-width="2"/>`;
+    } else {
+      data += `<circle cx="${x}" cy="${yp}" r="4.5" fill="${fill}" stroke="${edge}" stroke-width="1.8"/>`;
+    }
     const depStr  = `${p.dep.toFixed(1)} ft${p.elev!==null?` (El. ${p.elev.toFixed(1)} ft)`:''}`;
     const valStr  = isPhi ? `${Math.round(p.val)}°` : `${p.val.toFixed(2)} ksf`;
-    const tip = escHtml([
-      p.blabel || titlePrefix,
-      `Depth: ${depStr}`,
-      `N = ${p.N}   (N₁)₆₀ = ${p.N160!==null?p.N160.toFixed(1):'—'}`,
-      `${isPhi?'φ':'Sᵤ'} = ${valStr}`
-    ].join('||'));
+    const detailLine = p.source === 'PI'
+      ? `PI = ${p.PI}%   φ′ = ${valStr} (drained, Terzaghi/Peck/Mesri)`
+      : `N = ${p.N}   (N₁)₆₀ = ${p.N160!==null?p.N160.toFixed(1):'—'}   ${isPhi?'φ':'Sᵤ'} = ${valStr}`;
+    const tip = escHtml([p.blabel || titlePrefix, `Depth: ${depStr}`, detailLine].join('||'));
     data += `<rect x="${ML}" y="${yp-7}" width="${VW-ML-MR}" height="14" fill="transparent" style="cursor:crosshair" data-tip="${tip}" onmouseover="showPlotTip(this,event)" onmousemove="movePlotTip(event)" onmouseout="hidePlotTip()"/>`;
   });
 
   const yLabel = useElev ? 'Elevation (ft)' : 'Depth (ft bgs)';
+  const chartTitle = isPhi ? 'Friction Angle (φ / φ′)' : 'Sᵤ (undrained)';
   let svg = `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">`;
   svg += `<style>text{font-family:'IBM Plex Sans','Segoe UI',Arial,sans-serif}</style>`;
   svg += grid + data;
   svg += `<text x="${ML+(VW-ML-MR)/2}" y="${VH-10}" text-anchor="middle" font-size="12" font-weight="600" fill="#1a2b3c">${xLabel}</text>`;
   svg += `<text transform="translate(13,${MT+PH/2}) rotate(-90)" text-anchor="middle" font-size="12" font-weight="600" fill="#1a2b3c">${yLabel}</text>`;
-  svg += `<text x="${ML+(VW-ML-MR)/2}" y="${MT-14}" text-anchor="middle" font-size="13" font-weight="700" fill="${col.mark}">${escHtml(titlePrefix)} — ${isPhi?'φ':'Sᵤ'} vs. ${useElev?'Elevation':'Depth'}</text>`;
+  svg += `<text x="${ML+(VW-ML-MR)/2}" y="${MT-14}" text-anchor="middle" font-size="13" font-weight="700" fill="${col.mark}">${escHtml(titlePrefix)} — ${chartTitle} vs. ${useElev?'Elevation':'Depth'}</text>`;
   svg += '</svg>';
-  return `<div class="card" style="margin:0"><div class="card-head"><div class="card-head-l"><div class="dot" style="background:${col.mark}"></div>${titlePrefix} — ${isPhi?'φ (coarse-grained)':'Sᵤ (fine-grained)'}</div></div>
-    <div class="card-body"><div class="plot-wrap">${svg}</div></div></div>`;
+  const noteRow = (isPhi && hasPISeries)
+    ? `<div class="plot-note" style="margin-top:4px;font-size:10px">● filled = SPT-correlated (coarse) &nbsp;·&nbsp; ◇ hollow diamond = PI-correlated, drained (fine)</div>`
+    : '';
+  return `<div class="card" style="margin:0"><div class="card-head"><div class="card-head-l"><div class="dot" style="background:${col.mark}"></div>${titlePrefix} — ${headTxt}</div></div>
+    <div class="card-body"><div class="plot-wrap">${svg}</div>${noteRow}</div></div>`;
 }
 
 // ─── BORING PLOTS (side-by-side φ and Su) ────────────────────────────────────
@@ -1411,6 +1801,18 @@ function buildBoringPlot(bkey, rows) {
     const sc   = STRAT_COLORS[ci % STRAT_COLORS.length];
     return { dep:row.dep, yVal, elev, val:v, cls:row.cls, N:row.N, N160:row.N160, blabel, stratKey:row.stratKey, sc };
   }).filter(Boolean);
+
+  // PI-correlated drained φ′ points — plotted on the same friction-angle chart
+  // as the SPT-correlated coarse-grained φ points (tagged cls:'coarse' for
+  // buildClassPlot's filter), distinguished by source:'PI' + a hollow marker.
+  const phiPIPts = rows.filter(row => row.cls==='fine' && row.phiPI!=null).map(row => {
+    const yVal = hasElev ? gse - row.dep : row.dep;
+    const elev = hasElev ? gse - row.dep : null;
+    const ci   = row.stratKey && strata[row.stratKey] ? strata[row.stratKey].colorIdx : 0;
+    const sc   = STRAT_COLORS[ci % STRAT_COLORS.length];
+    return { dep:row.dep, yVal, elev, val:row.phiPI, cls:'coarse', PI:row.PI, blabel, stratKey:row.stratKey, sc, source:'PI' };
+  });
+  pts.push(...phiPIPts);
 
   if (!pts.length) {
     container.innerHTML = '<div class="plot-note">No strength data — assign soil types to strata and re-run Calculate.</div>';
@@ -1448,22 +1850,140 @@ function rebuildBoringPlot(bkey) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// φ′ vs. PI REFERENCE CHART — shown only when the project has PI-correlated
+// samples. This is an original SVG rendering built from OUR digitized data
+// points (PHI_PI_CHART_PTS) — not a reproduction/scan of the published plate
+// — with the project's own samples overlaid so the engineer can see where
+// their data falls against the reference trend. Composite x-axis: linear
+// 0–100%, then log 100–1000%, matching the proportions of the source figure.
+// ═══════════════════════════════════════════════════════════════════════════
+function piChartX(PI, ML, PW, splitFrac) {
+  const linW = PW * splitFrac, logW = PW * (1 - splitFrac);
+  if (PI <= 100) return ML + (PI / 100) * linW;
+  const frac = Math.log10(PI / 100); // 0 at PI=100 → 1 at PI=1000
+  return ML + linW + Math.min(frac, 1) * logW;
+}
+
+function buildPIReferenceChartSVG(pts) {
+  const VW=1000, VH=270, ML=58, MR=24, MT=28, MB=40;
+  const PW = VW-ML-MR, PH = VH-MT-MB;
+  const splitFrac = 0.66; // linear (0–100) gets ~66% of width, log (100–1000) the rest — mirrors the source plate's proportions
+  const yMax = 40, yMin = 0;
+  const sx = PI => piChartX(PI, ML, PW, splitFrac);
+  const sy = phi => MT + (yMax - phi) / (yMax - yMin) * PH;
+
+  let s = `<rect x="${ML}" y="${MT}" width="${PW}" height="${PH}" fill="#f8fafc" stroke="#c8d6e5" stroke-width="1"/>`;
+
+  // x gridlines: linear 0,20,40,60,80,100, then log 200,300,...,1000
+  const linTicks = [0,20,40,60,80,100];
+  const logTicks = [200,300,400,600,800,1000];
+  [...linTicks, ...logTicks].forEach(v => {
+    const x = sx(v);
+    const major = v===100 || v===1000;
+    s += `<line x1="${x}" y1="${MT}" x2="${x}" y2="${MT+PH}" stroke="${major?'#8ba9c0':'#dde6ef'}" stroke-width="${major?1.3:.7}" stroke-dasharray="${major?'none':'3,3'}"/>`;
+    s += `<text x="${x}" y="${MT+PH+16}" text-anchor="middle" font-size="9.5" fill="#5a738a">${v}</text>`;
+  });
+  // y gridlines every 10°
+  for (let y=0; y<=yMax; y+=10) {
+    const yp = sy(y);
+    s += `<line x1="${ML}" y1="${yp}" x2="${ML+PW}" y2="${yp}" stroke="#dde6ef" stroke-width=".7"/>`;
+    s += `<text x="${ML-8}" y="${yp+4}" text-anchor="end" font-size="10" fill="#5a738a">${y}</text>`;
+  }
+  s += `<line x1="${ML}" y1="${MT}" x2="${ML}" y2="${MT+PH}" stroke="#4a7daa" stroke-width="2"/>`;
+  s += `<line x1="${ML}" y1="${MT+PH}" x2="${ML+PW}" y2="${MT+PH}" stroke="#4a7daa" stroke-width="2"/>`;
+
+  // shaded region beyond the tool's vetted cap (PI > PHI_PI_MAXIP)
+  const xCap = sx(PHI_PI_MAXIP);
+  s += `<rect x="${xCap}" y="${MT}" width="${ML+PW-xCap}" height="${PH}" fill="#fef2f2" opacity="0.55"/>`;
+  s += `<line x1="${xCap}" y1="${MT}" x2="${xCap}" y2="${MT+PH}" stroke="#dc7a7a" stroke-width="1.3" stroke-dasharray="5,3"/>`;
+  s += `<text x="${xCap+4}" y="${MT+12}" font-size="9" fill="#b23b3b">tool's range ends (PI = ${PHI_PI_MAXIP}%)</text>`;
+
+  // digitized trend line (our own rendering of PHI_PI_CHART_PTS)
+  let path = '';
+  PHI_PI_CHART_PTS.forEach(([pi,phi],i) => {
+    const x=sx(pi), y=sy(phi);
+    path += `${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)} `;
+  });
+  s += `<path d="${path}" fill="none" stroke="#1a2b3c" stroke-width="2"/>`;
+
+  // project sample points overlaid, colored by stratum
+  pts.forEach(p => {
+    const x=sx(p.PI), y=sy(p.phiPI);
+    const fill = p.sc ? p.sc.bg : '#166534';
+    const edge = p.sc ? p.sc.br : '#166534';
+    const tip = escHtml([p.blabel, `Sample #${p.rowNum} · Depth ${p.dep.toFixed(1)} ft`, `PI = ${p.PI}%   φ′ = ${p.phiPI.toFixed(1)}°`].join('||'));
+    s += `<circle cx="${x}" cy="${y}" r="5" fill="${fill}" stroke="${edge}" stroke-width="2"/>`;
+    s += `<rect x="${x-7}" y="${y-7}" width="14" height="14" fill="transparent" style="cursor:crosshair" data-tip="${tip}" onmouseover="showPlotTip(this,event)" onmousemove="movePlotTip(event)" onmouseout="hidePlotTip()"/>`;
+  });
+
+  s += `<text x="${ML+PW/2}" y="${VH-8}" text-anchor="middle" font-size="11" font-weight="600" fill="#1a2b3c">Plasticity Index, PI (%) — linear 0–100, log 100–1000</text>`;
+  s += `<text transform="translate(14,${MT+PH/2}) rotate(-90)" text-anchor="middle" font-size="11" font-weight="600" fill="#1a2b3c">Friction Angle, φ′ (deg)</text>`;
+
+  return `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+    <style>text{font-family:'IBM Plex Sans','Segoe UI',Arial,sans-serif}</style>${s}</svg>`;
+}
+
+function updatePIReferenceChart() {
+  const card = document.getElementById('phiPIRefCard');
+  const container = document.getElementById('phiPIRefChart');
+  if (!card || !container) return;
+
+  const pts = [];
+  boringKeys.forEach(bkey => {
+    const blabel = document.getElementById(`blabel-${bkey}`)?.value || bkey;
+    readBoringRows(bkey).forEach(row => {
+      if (row.cls === 'fine' && row.phiPI !== null) {
+        const ci = row.stratKey && strata[row.stratKey] ? strata[row.stratKey].colorIdx : 0;
+        const sc = STRAT_COLORS[ci % STRAT_COLORS.length];
+        pts.push({ PI: row.PI, phiPI: row.phiPI, dep: row.dep, rowNum: row.rowNum, blabel, sc });
+      }
+    });
+  });
+
+  if (!pts.length) { card.classList.add('hidden'); container.innerHTML = ''; return; }
+
+  card.classList.remove('hidden');
+  const svg = buildPIReferenceChartSVG(pts);
+  container.innerHTML = `<div class="plot-wrap" style="max-width:820px;margin:0 auto">${svg}</div>
+    <div class="tbl-note" style="margin-top:10px">
+      ⬩ Trend line is this tool's own rendering of digitized values from Terzaghi, Peck &amp; Mesri (1996), <em>Soil Mechanics in Engineering Practice</em>, Fig. 19.7 — not a reproduction of the published plate.
+      ⬩ Shaded region (PI &gt; ${PHI_PI_MAXIP}%) is beyond this tool's vetted range — the calculator does not compute φ′(PI) there; consult the reference plate directly for shales / clay minerals in that range.
+      ⬩ Markers are this project's fine-grained samples with PI entered, colored by stratum — hover for sample detail.
+    </div>`;
+}
+
 // ─── SUMMARY PLOTS (all borings, colored by stratum, split φ / Su) ───────────
-const BOR_DASH = ['none','5,4','2,3','8,3,2,3','1,4'];
+const BOR_MARKERS = ['circle','square','diamond','tri-up','tri-dn','cross'];
+function markerSvg(shape, cx, cy, r, fill, stroke) {
+  const a = `fill="${fill}" stroke="${stroke}" stroke-width="1.4"`;
+  const x = +cx.toFixed(1), y = +cy.toFixed(1);
+  switch(shape) {
+    case 'circle':  return `<circle cx="${x}" cy="${y}" r="${r}" ${a}/>`;
+    case 'square':  return `<rect x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}" ${a}/>`;
+    case 'diamond': return `<polygon points="${x},${y-r*1.3} ${x+r*1.1},${y} ${x},${y+r*1.3} ${x-r*1.1},${y}" ${a}/>`;
+    case 'tri-up':  return `<polygon points="${x},${y-r*1.3} ${x+r*1.15},${y+r*0.85} ${x-r*1.15},${y+r*0.85}" ${a}/>`;
+    case 'tri-dn':  return `<polygon points="${x},${y+r*1.3} ${x+r*1.15},${y-r*0.85} ${x-r*1.15},${y-r*0.85}" ${a}/>`;
+    case 'cross':   return `<path d="M${x-r},${y}h${r*2}M${x},${y-r}v${r*2}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`;
+    default:        return `<circle cx="${x}" cy="${y}" r="${r}" ${a}/>`;
+  }
+}
 function buildSummaryPlot(allSamples) {
   const container = document.getElementById('splot');
   if (!container) return;
 
-  const gseVals = boringKeys.map(bkey => {
+  const gseVals = {};
+  boringKeys.forEach(bkey => {
     const v = document.getElementById(`bgse-${bkey}`)?.value ?? '';
     const f = parseFloat(v);
-    return v !== '' && !isNaN(f) ? f : null;
+    gseVals[bkey] = (v !== '' && !isNaN(f)) ? f : null;
   });
-  const useElev = boringKeys.length>0 && gseVals.every(v => v !== null);
+  const useElev = boringKeys.length>0 && boringKeys.every(k => gseVals[k] !== null);
 
-  const borGroups = boringKeys.map((bkey, bi) => {
+  // All summary-included boring groups (allSamples already filtered by summaryExcluded)
+  const borGroups = sortedBoringKeys().map((bkey, bi) => {
     const blabel = document.getElementById(`blabel-${bkey}`)?.value || bkey;
-    const gse    = gseVals[bi];
+    const gse    = gseVals[bkey];
     const rows   = allSamples.filter(s => s.bkey === bkey);
     const pts = rows.map(row => {
       const v = ssCalc(row);
@@ -1472,60 +1992,111 @@ function buildSummaryPlot(allSamples) {
       const elev = (useElev && gse!==null) ? gse - row.dep : null;
       const ci   = row.stratKey && strata[row.stratKey] ? strata[row.stratKey].colorIdx : 0;
       const sc   = STRAT_COLORS[ci % STRAT_COLORS.length];
-      return { dep:row.dep, yVal, elev, val:v, cls:row.cls, sc, stratKey:row.stratKey, blabel, N:row.N, N160:row.N160, dash:BOR_DASH[bi%BOR_DASH.length] };
+      return { dep:row.dep, yVal, elev, val:v, cls:row.cls, sc, stratKey:row.stratKey, blabel, N:row.N, N160:row.N160 };
     }).filter(Boolean);
+    // PI-correlated drained φ′ points — plotted on the same friction-angle
+    // chart as SPT-correlated coarse points (tagged cls:'coarse'), rendered
+    // hollow (same per-boring shape, unfilled) to mark the different source.
+    const phiPIPts = rows.filter(row => row.cls==='fine' && row.phiPI!=null).map(row => {
+      const yVal = (useElev && gse!==null) ? gse - row.dep : row.dep;
+      const elev = (useElev && gse!==null) ? gse - row.dep : null;
+      const ci   = row.stratKey && strata[row.stratKey] ? strata[row.stratKey].colorIdx : 0;
+      const sc   = STRAT_COLORS[ci % STRAT_COLORS.length];
+      return { dep:row.dep, yVal, elev, val:row.phiPI, cls:'coarse', sc, stratKey:row.stratKey, blabel, PI:row.PI, source:'PI' };
+    });
+    pts.push(...phiPIPts);
     pts.sort((a,b)=> useElev ? b.yVal-a.yVal : a.yVal-b.yVal);
-    return { bkey, blabel, pts, dash:BOR_DASH[bi%BOR_DASH.length] };
+    return { bkey, blabel, pts, mshape: BOR_MARKERS[bi % BOR_MARKERS.length] };
   }).filter(g => g.pts.length>0);
 
-  if (!borGroups.length) {
-    container.innerHTML = '<div class="plot-note" style="margin-top:10px">Run <strong>Calculate</strong> in each boring tab before generating the summary plot.</div>';
+  // "Borings in Plot" filter pill row
+  const summaryBkeys = borGroups.map(g => g.bkey);
+  const pillHtml = summaryBkeys.map(bkey => {
+    const lbl  = escHtml(document.getElementById(`blabel-${bkey}`)?.value || bkey);
+    const excl = plotExcluded.has(bkey);
+    return `<button onclick="togglePlotBoring('${bkey}')" style="padding:4px 12px;font-size:11px;font-family:var(--sans);font-weight:600;border-radius:20px;cursor:pointer;transition:all .12s;border:1px solid;background:${excl?'#f0f4f8':'var(--blue)'};color:${excl?'var(--muted)':'#fff'};border-color:${excl?'var(--border)':'var(--blue)'};text-decoration:${excl?'line-through':'none'};opacity:${excl?'0.65':'1'}" title="${excl?'Show on plot':'Hide from plot'}">${lbl}</button>`;
+  }).join('');
+  const nShown = summaryBkeys.filter(k=>!plotExcluded.has(k)).length;
+  const plotFilterRow = `<div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#f4f8fc;border:1px solid var(--border);border-radius:3px">
+    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);white-space:nowrap">Borings in Plot</span>
+    ${pillHtml}
+    ${plotExcluded.size>0?`<span style="font-size:10.5px;color:var(--muted);margin-left:4px">(${nShown} of ${summaryBkeys.length} shown)</span>`:''}
+  </div>`;
+
+  const plotGroups = borGroups.filter(g => !plotExcluded.has(g.bkey));
+
+  if (!plotGroups.length) {
+    const card = document.createElement('div');
+    card.className='card'; card.style.marginTop='16px';
+    card.innerHTML = `<div class="card-head"><div class="card-head-l"><div class="dot"></div>Shear Strength Profiles — All Borings</div></div>
+      <div class="card-body">${plotFilterRow}<div class="plot-note">No borings selected for plot.</div></div>`;
+    container.innerHTML=''; container.appendChild(card);
     return;
   }
 
-  const allPts = borGroups.flatMap(g=>g.pts);
+  const allPts = plotGroups.flatMap(g=>g.pts);
   const allY = allPts.map(p=>p.yVal);
   let yLo=Math.min(...allY), yHi=Math.max(...allY);
   const yPad=(yHi-yLo||10)*0.14;
   if (useElev){ yLo-=yPad; yHi+=yPad; } else { yLo=Math.max(0,yLo-yPad); yHi+=yPad; }
 
+  const MRAD = 3;
   const mk = (cls) => {
-    const isPhi = cls==='coarse';
-    const xLabel= isPhi ? 'Friction Angle, φ (deg)' : 'Undrained Shear Strength, Sᵤ (ksf)';
-    const xfmt  = isPhi ? (e=>Math.round(e)) : (e=>e.toFixed(e<1?2:1));
+    const isPhi  = cls==='coarse';
+    const xLabel = isPhi ? 'Friction Angle, φ / φ′ (deg)' : 'Undrained Shear Strength, Sᵤ (ksf)';
+    const xfmt   = isPhi ? (e=>Math.round(e)) : (e=>e.toFixed(e<1?2:1));
     const VW=650, VH=700, ML=70, MR=22, MT=40, MB=64;
-    const cpAll = allPts.filter(p=>p.cls===cls);
+    const cpAll  = allPts.filter(p=>p.cls===cls);
     if (!cpAll.length) return '';
-    const allX = cpAll.map(p=>p.val);
+    const allX   = cpAll.map(p=>p.val);
     let xMax = isPhi ? Math.ceil(Math.max(...allX,30)/5)*5 : Math.ceil(Math.max(...allX)/0.5)*0.5 || 1;
     if (xMax<=0) xMax = isPhi?45:1;
     const { s:grid, sx, sy, PH } = makeSvgBase(VW,VH,ML,MR,MT,MB,xMax,yLo,yHi,useElev,xfmt);
-    let data='';
-    borGroups.forEach(g=>{
+    const mark = isPhi ? '#8a5300' : '#0e5b6b';
+    const hasPISeries = cpAll.some(p=>p.source==='PI');
+
+    let data = '';
+    // Connecting lines first (behind markers) — only within the same correlation source
+    plotGroups.forEach(g => {
       const cp = g.pts.filter(p=>p.cls===cls);
-      for (let i=1;i<cp.length;i++){
-        data += `<line x1="${sx(cp[i-1].val)}" y1="${sy(cp[i-1].yVal)}" x2="${sx(cp[i].val)}" y2="${sy(cp[i].yVal)}" stroke="${cp[i-1].sc.br}" stroke-width="2" opacity="0.85" stroke-dasharray="${g.dash}"/>`;
+      for (let i=1;i<cp.length;i++) {
+        if ((cp[i-1].source||null) !== (cp[i].source||null)) continue;
+        data += `<line x1="${sx(cp[i-1].val).toFixed(1)}" y1="${sy(cp[i-1].yVal).toFixed(1)}" x2="${sx(cp[i].val).toFixed(1)}" y2="${sy(cp[i].yVal).toFixed(1)}" stroke="${cp[i-1].sc.br}" stroke-width="1.5" opacity="0.7" stroke-dasharray="${cp[i-1].source==='PI'?'4,3':''}"/>`;
       }
-      cp.forEach(p=>{
+    });
+    // Markers + tooltip hit areas on top — PI-correlated points render hollow
+    // (same per-boring shape, unfilled) to mark the different correlation source
+    plotGroups.forEach(g => {
+      const cp = g.pts.filter(p=>p.cls===cls);
+      cp.forEach(p => {
         const x=sx(p.val), yp=sy(p.yVal);
-        data += `<circle cx="${x}" cy="${yp}" r="4" fill="${p.sc.bg}" stroke="${p.sc.br}" stroke-width="1.6"/>`;
-        const depStr  = `${p.dep.toFixed(1)} ft${p.elev!==null?` (El. ${p.elev.toFixed(1)} ft)`:''}`;
-        const valStr  = isPhi ? `${Math.round(p.val)}°` : `${p.val.toFixed(2)} ksf`;
-        const tip = escHtml([p.blabel, `Depth: ${depStr}`, `N = ${p.N}   (N₁)₆₀ = ${p.N160!==null?p.N160.toFixed(1):'—'}`, `${isPhi?'φ':'Sᵤ'} = ${valStr}`].join('||'));
+        if (p.source === 'PI') data += markerSvg(g.mshape, x, yp, MRAD*1.3, '#fff', p.sc.br);
+        else data += markerSvg(g.mshape, x, yp, MRAD, p.sc.bg, p.sc.br);
+        const depStr = `${p.dep.toFixed(1)} ft${p.elev!==null?` (El. ${p.elev.toFixed(1)} ft)`:''}`;
+        const valStr = isPhi ? `${Math.round(p.val)}°` : `${p.val.toFixed(2)} ksf`;
+        const detailLine = p.source==='PI'
+          ? `PI = ${p.PI}%   φ′ = ${valStr} (drained, Terzaghi/Peck/Mesri)`
+          : `N = ${p.N}   (N₁)₆₀ = ${p.N160!==null?p.N160.toFixed(1):'—'}   ${isPhi?'φ':'Sᵤ'} = ${valStr}`;
+        const tip = escHtml([p.blabel, `Depth: ${depStr}`, detailLine].join('||'));
         data += `<rect x="${x-7}" y="${yp-7}" width="14" height="14" fill="transparent" style="cursor:crosshair" data-tip="${tip}" onmouseover="showPlotTip(this,event)" onmousemove="movePlotTip(event)" onmouseout="hidePlotTip()"/>`;
       });
     });
+
     const yLabel = useElev ? 'Elevation (ft)' : 'Depth (ft bgs)';
-    const mark = isPhi?'#8a5300':'#0e5b6b';
+    const headTxt = isPhi ? 'Friction Angle Profile' : 'Sᵤ Profile (undrained)';
+    const chartTitle = isPhi ? 'Friction Angle (φ / φ′)' : 'Sᵤ (undrained)';
     let svg = `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">`;
     svg += `<style>text{font-family:'IBM Plex Sans','Segoe UI',Arial,sans-serif}</style>`;
     svg += grid + data;
     svg += `<text x="${ML+(VW-ML-MR)/2}" y="${VH-10}" text-anchor="middle" font-size="12" font-weight="600" fill="#1a2b3c">${xLabel}</text>`;
     svg += `<text transform="translate(13,${MT+PH/2}) rotate(-90)" text-anchor="middle" font-size="12" font-weight="600" fill="#1a2b3c">${yLabel}</text>`;
-    svg += `<text x="${ML+(VW-ML-MR)/2}" y="${MT-14}" text-anchor="middle" font-size="13" font-weight="700" fill="${mark}">${isPhi?'φ':'Sᵤ'} vs. ${useElev?'Elevation':'Depth'} — All Borings</text>`;
+    svg += `<text x="${ML+(VW-ML-MR)/2}" y="${MT-14}" text-anchor="middle" font-size="13" font-weight="700" fill="${mark}">${chartTitle} vs. ${useElev?'Elevation':'Depth'} — All Borings</text>`;
     svg += '</svg>';
-    return `<div class="card" style="margin:0"><div class="card-head"><div class="card-head-l"><div class="dot" style="background:${mark}"></div>${isPhi?'φ Profile (coarse-grained)':'Sᵤ Profile (fine-grained)'}</div></div>
-      <div class="card-body"><div class="plot-wrap">${svg}</div></div></div>`;
+    const noteRow = (isPhi && hasPISeries)
+      ? `<div class="plot-note" style="margin-top:4px;font-size:10px">filled = SPT-correlated (coarse) &nbsp;·&nbsp; hollow = PI-correlated, drained (fine) &nbsp;·&nbsp; shape = boring</div>`
+      : '';
+    return `<div class="card" style="margin:0"><div class="card-head"><div class="card-head-l"><div class="dot" style="background:${mark}"></div>${headTxt}</div></div>
+      <div class="card-body"><div class="plot-wrap">${svg}</div>${noteRow}</div></div>`;
   };
 
   const hasC = allPts.some(p=>p.cls==='coarse');
@@ -1533,25 +2104,29 @@ function buildSummaryPlot(allSamples) {
   let inner='';
   if (hasC) inner += mk('coarse');
   if (hasF) inner += mk('fine');
-  const grid = (hasC && hasF) ? `<div class="plot-grid2">${inner}</div>` : inner;
+  const plotGrid = (hasC && hasF) ? `<div class="plot-grid2">${inner}</div>` : inner;
 
-  // Legends: strata (color) + borings (dash)
+  // Legend — row 1: strata (with description), row 2: boring markers
   const seenStrat=new Set();
   const stratLeg = allPts.filter(p=>{ if(seenStrat.has(p.stratKey))return false; seenStrat.add(p.stratKey); return true; });
-  let legend = '<div class="plot-legend" style="margin-top:12px">';
+  let legend = '<div class="plot-legend" style="margin-top:12px;flex-direction:column;align-items:flex-start;gap:8px">';
+  legend += '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">';
   stratLeg.forEach(p=>{
-    const lbl=(p.stratKey&&strata[p.stratKey]?.label)?escHtml(strata[p.stratKey].label):(p.stratKey||'?');
-    legend += `<div class="plot-legend-item"><div class="plot-legend-swatch" style="background:${p.sc.bg};border-color:${p.sc.br}"></div><span>${lbl}</span></div>`;
+    const lbl  = (p.stratKey&&strata[p.stratKey]?.label) ? escHtml(strata[p.stratKey].label) : (p.stratKey||'?');
+    const desc = (p.stratKey&&strata[p.stratKey]?.desc)  ? ` — ${escHtml(strata[p.stratKey].desc)}`  : '';
+    legend += `<div class="plot-legend-item"><div class="plot-legend-swatch" style="background:${p.sc.bg};border-color:${p.sc.br}"></div><span><strong>${lbl}</strong>${desc}</span></div>`;
   });
-  borGroups.forEach((g,i)=>{
-    legend += `<div class="plot-legend-item"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#5a738a" stroke-width="2" stroke-dasharray="${g.dash}"/></svg><span>${escHtml(g.blabel)}</span></div>`;
+  legend += '</div><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">';
+  plotGroups.forEach(g=>{
+    const svgStr = `<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg">${markerSvg(g.mshape,7,7,3.5,'#8fa8be','#3d5a73')}</svg>`;
+    legend += `<div class="plot-legend-item">${svgStr}<span>${escHtml(g.blabel)}</span></div>`;
   });
-  legend += `<span class="plot-hint">color = stratum · dash = boring · hover for sample info${useElev?'':' · enter GSE per boring for elevation mode'}</span></div>`;
+  legend += `</div><span class="plot-hint">color = stratum · shape = boring · hover for sample info${useElev?'':' · enter GSE per boring for elevation mode'}</span></div>`;
 
   const card = document.createElement('div');
   card.className='card'; card.style.marginTop='16px';
   card.innerHTML = `<div class="card-head"><div class="card-head-l"><div class="dot"></div>Shear Strength Profiles — All Borings</div></div>
-    <div class="card-body">${grid}${legend}</div>`;
+    <div class="card-body">${plotFilterRow}${plotGrid}${legend}</div>`;
   container.innerHTML=''; container.appendChild(card);
 }
 
@@ -1585,25 +2160,33 @@ function printBoringPage(bkey) {
 }
 function printHeaderBar() {
   const d = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
-  const projName = document.getElementById('projName')?.value.trim() || '';
-  const projNo   = document.getElementById('projNo')?.value.trim() || '';
+  const projName    = document.getElementById('projName')?.value.trim()     || '';
+  const projNo      = document.getElementById('projNo')?.value.trim()       || '';
+  const projPrepBy  = document.getElementById('projPrepBy')?.value.trim()   || '';
+  const projPrepDate= document.getElementById('projPrepDate')?.value.trim() || '';
   const projLine = [projName, projNo ? `No. ${projNo}` : ''].filter(Boolean).join(' \u2014 ');
+  const stampRow = [
+    projPrepBy   ? `Prepared By: ${projPrepBy}`   : '',
+    projPrepDate ? `Date Prepared: ${projPrepDate}` : '',
+  ].filter(Boolean).join('  ·  ');
   return `<div class="doc-hdr">
     <div>
       <div>Shear Strength Correlation Calculator</div>
       ${projLine ? `<div style="font-size:9pt;font-weight:500;color:#5a738a;margin-top:2pt">${escHtml(projLine)}</div>` : ''}
+      ${stampRow ? `<div style="font-size:8.5pt;color:#7a93a8;margin-top:2pt">${escHtml(stampRow)}</div>` : ''}
     </div>
     <span style="font-size:9pt;color:#5a738a;white-space:nowrap">${d}</span>
   </div>`;
 }
 function boringPrintSection(bkey) {
-  const rows    = readBoringRows(bkey);
+  const rows    = readBoringRows(bkey, true); // include excluded rows so they can be shown grayed-out
   const blabel  = document.getElementById(`blabel-${bkey}`)?.value || bkey;
   const er      = document.getElementById(`ber-${bkey}`)?.value || '60';
   const gw      = document.getElementById(`bgw-${bkey}`)?.value || '—';
   const gseRaw  = document.getElementById(`bgse-${bkey}`)?.value ?? '';
   const gse     = gseRaw !== '' ? parseFloat(gseRaw) : null;
   const elevCol = gse !== null;
+  const hasExcl = rows.some(r => r.excl);
 
   const plotEls = document.getElementById(`bplot-${bkey}`)?.querySelectorAll('svg');
   let plotSVG = '';
@@ -1620,42 +2203,53 @@ function boringPrintSection(bkey) {
     const elStr  = (gse !== null && row.dep != null) ? (gse - row.dep).toFixed(1) : '';
     let stratCells = '';
     cols.forEach(c => {
-      if (row.stratKey === c.sk && v !== null) {
-        stratCells += `<td class="c mono fw" style="background:${c.sc.bg}">${fmtStratVal(c, v)}</td>`;
+      const hit = row.stratKey === c.sk;
+      if (c.cls === 'fine') {
+        stratCells += (hit && v !== null) ? `<td class="c mono fw" style="background:${c.sc.bg}">${fmtStratVal(c, v)}</td>` : `<td class="c" style="color:#bbb">—</td>`;
+        stratCells += (hit && row.phiPI != null) ? `<td class="c mono fw" style="background:#eaf6ec;color:#166534">${Math.round(row.phiPI)}°</td>` : `<td class="c" style="color:#bbb">—</td>`;
       } else {
-        stratCells += `<td class="c" style="color:#bbb">—</td>`;
+        stratCells += (hit && v !== null) ? `<td class="c mono fw" style="background:${c.sc.bg}">${fmtStratVal(c, v)}</td>` : `<td class="c" style="color:#bbb">—</td>`;
       }
     });
     if (!cols.length) stratCells = `<td class="c" style="color:#bbb">—</td>`;
-    trows += `<tr>
+    trows += `<tr${row.excl ? ' class="excl-row"' : ''}>
       <td class="c">${row.rowNum}</td>
       <td class="c mono">${depFmt}</td>
       ${elevCol ? `<td class="c mono">${elStr}</td>` : ''}
       <td class="c">${row.cls||'—'}</td>
       <td class="c mono">${row.N}</td>
+      <td class="c mono">${row.sigV != null ? row.sigV.toFixed(2) : '—'}</td>
+      <td class="c mono">${row.CN != null ? row.CN.toFixed(2) : '—'}</td>
+      <td class="c mono">${row.CE.toFixed(2)}</td>
+      <td class="c mono">${row.CR.toFixed(2)}</td>
       <td class="c mono">${row.N60 ? row.N60.toFixed(1) : '—'}</td>
       <td class="c mono fw">${row.N160 != null ? row.N160.toFixed(1) : '—'}</td>
       ${stratCells}
+      <td class="c">${row.excl ? 'Excl.\u00B9' : ''}</td>
     </tr>`;
   });
   const elevTh = elevCol ? '<th>Elev. (ft)</th>' : '';
-  // per-stratum headers (tinted)
+  // per-stratum headers (tinted) — fine strata get Sᵤ|φ′ sub-columns
   let stratTh = cols.map(c => {
-    const metric = c.cls==='coarse' ? 'φ (deg)' : c.cls==='fine' ? 'Sᵤ (ksf)' : '';
-    return `<th style="background:${c.sc.br};color:#1a2b3c">${escHtml(c.st.label||c.sk)}<br><span style="font-weight:400;font-size:6.5pt">${metric}</span></th>`;
+    if (c.cls === 'fine') {
+      return `<th colspan="2" style="background:${c.sc.br};color:#1a2b3c">${escHtml(c.st.label||c.sk)}<br><span style="font-weight:400;font-size:6.5pt">Sᵤ (ksf) · φ′ (deg)</span></th>`;
+    }
+    return `<th style="background:${c.sc.br};color:#1a2b3c">${escHtml(c.st.label||c.sk)}<br><span style="font-weight:400;font-size:6.5pt">φ (deg)</span></th>`;
   }).join('');
   if (!cols.length) stratTh = '<th>Strength</th>';
-  const nCols = 7 + (elevCol?1:0) + (cols.length||1);
+  const nCols = 11 + (elevCol?1:0) + (cols.reduce((n,c)=>n+(c.cls==='fine'?2:1),0)||1);
   const paramStr = `ER = ${er}%  |  GWT = ${gw} ft bgs${gse !== null ? `  |  GSE = ${gse.toFixed(1)} ft` : ''}`;
-  const calcStr  = `φ = 27.1 + 0.3·(N₁)₆₀ − 0.00054·(N₁)₆₀²  |  Sᵤ = (N₁)₆₀/7.5 ksf  |  CN = 0.77·log(20/σ'v,tsf) [coarse], 1.0 [fine]`;
+  const calcStr  = `N₆₀ = N·C_E·C_R  |  (N₁)₆₀ = N₆₀·C_N  |  φ = 27.1 + 0.3·(N₁)₆₀ − 0.00054·(N₁)₆₀²  |  Sᵤ = (N₁)₆₀/7.5 ksf  |  C_N = 0.77·log(20/σ'v,tsf) [coarse], 1.0 [fine]  |  φ′(PI) from Terzaghi/Peck/Mesri (1996) Fig. 19.7, fine-grained, PI ≤ ${PHI_PI_MAXIP}%`;
+  const exclFootnote = hasExcl ? `<p class="tbl-note" style="margin-top:4pt">¹ Rows marked <strong>Excl.</strong> are excluded from the N₆₀/(N₁)₆₀ correlation results, stratum-average statistics, and Summary calculations, at the engineer's discretion (e.g. disturbed sample, non-representative N-value, or other field/QC judgment) — shown here for record only.</p>` : '';
 
   return `<div class="section">
     <div class="bor-hdr-print"><span class="bor-id">${escHtml(blabel)}</span><span class="bor-params">${paramStr}</span></div>
     <p class="calc-params">${calcStr}</p>
     <table>
-      <thead><tr><th>#</th><th>Depth (ft)</th>${elevTh}<th>Class</th><th>N</th><th>N₆₀</th><th>(N₁)₆₀</th>${stratTh}</tr></thead>
+      <thead><tr><th>#</th><th>Depth (ft)</th>${elevTh}<th>Class</th><th>N</th><th>σ'<sub>v</sub> (tsf)</th><th>C<sub>N</sub></th><th>C<sub>E</sub></th><th>C<sub>R</sub></th><th>N₆₀</th><th>(N₁)₆₀</th>${stratTh}<th>Excl.</th></tr></thead>
       <tbody>${trows || `<tr><td colspan="${nCols}" class="c" style="color:#888">No data — check that samples have N values and strata assigned.</td></tr>`}</tbody>
     </table>
+    ${exclFootnote}
     <div class="plot-print">${plotSVG}</div>
   </div>`;
 }
@@ -1691,6 +2285,8 @@ function printCSS() {
     th{background:#152d4a;color:#fff;padding:4pt 5pt;text-align:center;font-size:7.5pt;font-weight:600;border:1pt solid #4a6a8a}
     td{padding:3pt 5pt;border:1pt solid var(--border);vertical-align:middle}
     tr:nth-child(even) td{background:#f8fafc}
+    tr.excl-row td{color:#9aa8b5!important;background:#f4f6f8!important}
+    tr.excl-row td.fw{color:#9aa8b5!important}
     .pg{page-break-before:always}
     .doc-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:5pt;border-bottom:2pt solid var(--navy);margin-bottom:12pt;font-size:13pt;font-weight:700;color:var(--navy)}
     .bor-hdr-print{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4pt}
@@ -1712,10 +2308,14 @@ function printCSS() {
     .no-data{color:#888;font-style:italic;font-size:9pt;margin:8pt 0}
     .tbl-note{font-size:8pt;color:var(--muted);padding:4pt 8pt;border-left:2pt solid var(--border);line-height:1.6}
     .badge{font-size:7pt;font-weight:700;padding:1pt 5pt;border-radius:8pt}
-    .sum-tbl{border-collapse:collapse;width:100%}
+    .sum-tbl{border-collapse:collapse;width:100%;table-layout:fixed}
     .sum-tbl th{background:#152d4a;color:#fff;padding:5pt 6pt;border:1pt solid #4a6a8a;font-size:7.5pt}
-    .sum-tbl td{padding:3pt 6pt;border:1pt solid var(--border);font-size:8pt}
+    .sum-tbl td{padding:3pt 6pt;border:1pt solid var(--border);font-size:8pt;text-align:center;vertical-align:middle;word-break:break-word}
     .sum-tbl tr:nth-child(even) td{background:#f8fafc}
+    .sum-tbl .sum-corner{background:#152d4a;color:#fff;text-align:left;width:110pt}
+    .sum-tbl .sum-rh{background:#dce8f4;color:#0c1f35;text-align:left;font-weight:600;white-space:nowrap;width:110pt}
+    .sum-tbl tr.dv-row .sum-rh{background:#fff8e8;color:#8a5300}
+    .sum-tbl tr.dv-row td{background:#fffcf0}
     .dv-input{font-family:var(--mono);font-size:8pt;border:1pt solid #ccc;padding:2pt 4pt;width:60pt}
     .res-wrap,.res-tbl{display:none}
   `;
@@ -1860,7 +2460,7 @@ function importFromFieldLog() {
           recalcBoring(bkey);
         });
 
-        if (boringKeys.length) switchTab(boringKeys[0]);
+        if (boringKeys.length) { sortTabBar(); switchTab(sortedBoringKeys()[0]); }
 
         const skipped = flState.borings.length - validBorings.length;
         alert([
@@ -1891,5 +2491,14 @@ init();
 
 </script>
 
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
+</script>
 </body>
 </html>

@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Micropile Capacity Calculator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- P1-4: self-hosted IBM Plex (was Google Fonts CDN) -->
 <style>
   :root {
     --navy:#0c1f35; --navy2:#152d4a; --blue:#1d5fa8; --blue2:#2471c9;
@@ -19,6 +19,7 @@
 
   /* ── HEADER ── */
   .header{background:var(--navy);color:#fff;border-bottom:3px solid var(--blue2)}
+  .breadcrumb{padding:6px 24px;font-size:11px;font-family:var(--mono);color:var(--muted);background:#fff;border-bottom:1px solid var(--border)}.breadcrumb a{color:var(--blue2);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
   .header-inner{max-width:1200px;margin:0 auto;padding:15px 24px 12px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
   .header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
   .header h1 span{color:#6db3f5}
@@ -76,13 +77,14 @@
 
   /* ── PHASE SECTIONS ── */
   .phase{background:var(--bg2);border:1px solid var(--border);border-radius:3px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
-  .phase-head{display:flex;align-items:center;gap:12px;padding:11px 20px;background:var(--navy2);color:#fff}
-  .phase-head.struct{background:var(--steel)}
+  .phase-head{display:flex;align-items:center;gap:12px;padding:11px 20px;background:var(--navy2);color:#fff;cursor:pointer;user-select:none}
   .phase-num{font-family:var(--mono);font-size:17px;font-weight:600;color:#6db3f5;line-height:1;flex-shrink:0}
   .phase-title{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
   .phase-sub{font-family:var(--mono);font-size:10px;color:#7a9fc0;margin-top:1px}
-  .phase-head.struct .phase-sub{color:#c8ddf0}
   .phase-ref{font-family:var(--mono);font-size:10px;color:#5a8ab0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:2px 7px;border-radius:2px;margin-left:auto;white-space:nowrap;flex-shrink:0}
+  .phase-chevron{font-size:11px;color:#7a9fc0;flex-shrink:0;transition:transform .15s;margin-left:2px}
+  .phase.collapsed .phase-body{display:none}
+  .phase.collapsed .phase-chevron{transform:rotate(-90deg)}
   .phase-body{padding:20px 22px}
 
   /* ── INNER CARDS ── */
@@ -150,20 +152,20 @@
   .pill.ok-pill .pill-value{color:var(--green)}
 
   /* ── STATUS CARDS ── */
-  .status-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
-  .status-card{border-radius:3px;padding:16px 20px;border:2px solid}
+  .status-cards{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .status-card{flex:1 1 190px;min-width:0;border-radius:3px;padding:8px 12px;border:1.5px solid}
   .status-card.ok{background:#f0fdf4;border-color:#86efac}
   .status-card.ng{background:#fff5f5;border-color:#fca5a5}
   .status-card.na{background:#f8fafc;border-color:var(--border)}
-  .status-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .status-badge{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;display:flex;align-items:center;gap:5px;white-space:nowrap}
   .status-badge.ok{color:var(--green)}
   .status-badge.ng{color:var(--red)}
   .status-badge.na{color:var(--muted)}
-  .status-icon{font-size:15px}
-  .status-label{font-size:11.5px;font-weight:600;color:var(--navy);margin-bottom:10px}
-  .status-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px;font-family:var(--mono)}
+  .status-icon{font-size:12px}
+  .status-label{display:none}
+  .status-row{display:inline-flex;gap:3px;font-size:9.5px;color:var(--muted);margin-right:10px;margin-bottom:0;font-family:var(--mono)}
   .status-row span:last-child{font-weight:600;color:var(--text)}
-  .status-dcr{font-family:var(--mono);font-size:22px;font-weight:700;margin-top:8px}
+  .status-dcr{font-family:var(--mono);font-size:16px;font-weight:700;margin-top:3px}
   .status-dcr.ok{color:var(--green)}
   .status-dcr.ng{color:var(--red)}
   .status-dcr.na{color:var(--muted)}
@@ -179,14 +181,34 @@
   .ab-tbl th{background:var(--navy2);color:#fff;padding:7px 10px;border:1px solid #2a4a6a;font-size:9.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;text-align:center;white-space:nowrap}
   .ab-tbl th.desc-hdr{text-align:left;font-family:var(--sans);min-width:200px}
   .ab-tbl th.act-hdr{background:var(--blue2)}
-  .ab-tbl td{padding:6px 10px;border:1px solid #d8e4ee;text-align:center;font-family:var(--mono);cursor:pointer;transition:background .1s}
+  .ab-tbl td{padding:6px 10px;border:1px solid #d8e4ee;text-align:center;font-family:var(--mono);transition:background .1s}
   .ab-tbl td.desc-cell{text-align:left;font-family:var(--sans);font-size:12px;line-height:1.4}
   .ab-tbl tbody tr:hover td{background:#eef5ff}
-  .ab-tbl tbody tr.sel-row td{background:#dbeafe;font-weight:700}
   .ab-tbl td.na-cell{color:#aab8cc;font-size:10px;cursor:default}
   .ab-tbl td.act-col{background:#fffde7}
-  .ab-tbl tbody tr.sel-row td.act-col{background:#fef08a;font-weight:800}
   .ab-tbl .tbl-sep td{font-size:9.5px;color:var(--muted);font-style:italic;font-family:var(--sans);text-align:left;background:#f5f7fa;padding:4px 10px;cursor:default;border-top:2px solid #c0cedc}
+  .ab-tbl td.chip-cell{width:34px;padding:6px 4px;cursor:default}
+  .ab-tbl th.chip-hdr{width:34px}
+  .chip-dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(12,31,53,.45);box-shadow:0 0 0 1px rgba(255,255,255,.6) inset;margin:0 1.5px}
+
+  /* ── BOND ZONE SEGMENTS ── */
+  .seg-tbl{border-collapse:collapse;font-size:12px;width:100%}
+  .seg-tbl th{background:var(--navy2);color:#fff;padding:6px 10px;border:1px solid #2a4a6a;font-size:9.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;text-align:left;white-space:nowrap}
+  .seg-tbl td{padding:6px 8px;border:1px solid #d8e4ee;background:#fff;vertical-align:middle}
+  .seg-tbl td.seg-num{width:34px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--navy);border-right-width:3px}
+  .seg-tbl td.seg-len{width:90px}
+  .seg-tbl td.seg-del{width:32px;text-align:center}
+  .seg-tbl input[type=text]{width:100%;min-width:140px}
+  .seg-tbl input[type=number]{width:100%;min-width:0}
+  .seg-tbl select{width:100%;min-width:220px;font-size:11.5px}
+  .seg-del-btn{padding:3px 8px;font-size:12px;font-family:var(--mono);border:1px solid #dce8f4;border-radius:2px;background:#f5f7fa;color:var(--muted);cursor:pointer}
+  .seg-del-btn:hover{background:#fce8e8;border-color:#f5b8b8;color:var(--red)}
+  .seg-del-btn:disabled{opacity:.35;cursor:not-allowed}
+  .seg-del-btn:disabled:hover{background:#f5f7fa;border-color:#dce8f4;color:var(--muted)}
+  .btn-add{padding:6px 14px;font-size:12px;font-family:var(--sans);font-weight:500;border:1px solid var(--blue);border-radius:3px;background:#f0f6ff;color:var(--blue);cursor:pointer;transition:background .1s}
+  .btn-add:hover{background:#e0edfc}
+  .seg-total-row{display:flex;justify-content:flex-end;gap:8px;padding:8px 2px 0;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .seg-total-row strong{color:var(--navy)}
 
   /* ── DCR TABLE ── */
   .dcr-tbl{border-collapse:collapse;font-size:12px;width:100%}
@@ -227,13 +249,17 @@
     body{background:#fff;font-size:11px}
     .header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .hdr-actions,.add-loc-btn,.loc-tab-del,.print-wrap,.ref-toggle{display:none!important}
+    .phase.collapsed .phase-body{display:block!important}
+    .phase-chevron{display:none!important}
+    .phase-head{cursor:default!important}
     .loc-tab-wrap{display:none!important}
     .container{padding:10px 14px 20px;max-width:100%}
     .sum-tbl{font-size:8.5px}
     .sum-col-status,.sum-col-soil{display:none!important}
     .proj-card,.card,.calc-block,.check-card,.status-card,.result-row{box-shadow:none;break-inside:avoid}
     .phase-head,.card-head,.proj-head,.loc-name-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .ab-tbl tbody tr.sel-row td,.ab-tbl td.act-col,.ref-tbl .cur-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .ab-tbl td.act-col,.ref-tbl .cur-row td,.chip-dot,.seg-tbl td.seg-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .seg-tbl td.seg-del,.seg-del-btn{display:none!important}
     .status-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     input::placeholder,.proj-input::placeholder,.loc-name-input::placeholder{color:transparent}
 
@@ -255,7 +281,7 @@
     .print-loc-section:first-child{break-before:avoid}
     .print-loc-label{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--navy2)}
   }
-  @media(max-width:760px){.two-col,.status-cards{grid-template-columns:1fr}}
+  @media(max-width:760px){.two-col{grid-template-columns:1fr}.status-cards{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -280,6 +306,9 @@
       <span class="header-tag">AASHTO LRFD 9th Ed. &nbsp;·&nbsp; §10.9.3</span>
     </div>
   </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">← Geotech Tools</a> &nbsp;/&nbsp; Micropile Capacity Calculator
 </div>
 
 <div class="container">
@@ -335,12 +364,13 @@
 
   <!-- INFO FROM STRUCTURES -->
   <div class="phase">
-    <div class="phase-head struct">
+    <div class="phase-head struct" onclick="togglePhase(this)">
       <div>
         <div class="phase-title">Information from Structures</div>
         <div class="phase-sub">Pile loads and footing geometry provided by the Structures team</div>
       </div>
       <div class="phase-ref">Service Limit State</div>
+      <div class="phase-chevron">&#9662;</div>
     </div>
     <div class="phase-body">
       <div class="field-row" style="margin-bottom:10px">
@@ -357,10 +387,24 @@
           <input type="number" id="tu" placeholder="—" min="0" max="50000" step="0.1" oninput="calc()">
         </div>
       </div>
-      <div class="note-box" style="margin-bottom:0">
+      <div class="note-box">
         Enter per-pile reactions at the <strong>service limit state</strong> (unfactored).
         Per §C10.9.3.5.1, micropile bond resistance is compared against service limit state demands.
         Enter the absolute value for tension (uplift).
+      </div>
+      <div class="field-row" style="margin-bottom:0">
+        <div class="field">
+          <label>Max Factored Reaction — Compression (kips) <em>— Strength I</em></label>
+          <input type="number" id="pu-str" placeholder="—" min="0" max="50000" step="0.1" oninput="calc()">
+        </div>
+        <div class="field">
+          <label>Max Factored Reaction — Tension (kips) <em>— Strength I, 0 if N/A</em></label>
+          <input type="number" id="tu-str" placeholder="—" min="0" max="50000" step="0.1" oninput="calc()">
+        </div>
+      </div>
+      <div class="note-box" style="margin-bottom:0">
+        Strength I (factored) reactions are shown alongside the service check in the Summary phase as a
+        reference cross-check against the same bond resistance, R<sub>R</sub>.
       </div>
     </div>
   </div>
@@ -374,13 +418,14 @@
 
   <!-- PHASE 1: GEOTECHNICAL RESISTANCE -->
   <div class="phase">
-    <div class="phase-head">
+    <div class="phase-head" onclick="togglePhase(this)">
       <div class="phase-num">①</div>
       <div>
         <div class="phase-title">Geotechnical Resistance</div>
         <div class="phase-sub">Grout-to-ground bond &nbsp;·&nbsp; Eq. 10.9.3.5.2-1</div>
       </div>
       <div class="phase-ref">§10.9.3.5</div>
+      <div class="phase-chevron">&#9662;</div>
     </div>
     <div class="phase-body">
 
@@ -398,8 +443,8 @@
               <input type="number" id="Lc" placeholder="—" min="0" max="500" step="0.5" oninput="calc()">
             </div>
             <div class="field">
-              <label>Bond Length, L<sub>b</sub> (ft)</label>
-              <input type="number" id="Lb" placeholder="—" min="0" max="500" step="0.5" oninput="calc()">
+              <label>Bond Length, L<sub>b</sub> (ft) <em>— &Sigma; segments</em></label>
+              <span class="derived-val" id="bond-len">—</span>
             </div>
             <div class="field">
               <label>Total Length</label>
@@ -421,30 +466,61 @@
         </div>
       </div>
 
-      <!-- αb Reference Table -->
-      <div class="info-box">
-        <strong>Table C10.9.3.5.2-1 &nbsp;·&nbsp; Typical α<sub>b</sub> Ranges.</strong>
-        Click a row to populate the α<sub>b</sub> fields below. Active micropile type column highlighted.
-        Rock types: Type A only (gravity-grouted; pressure injection not used in rock).
+      <!-- Bond Zone Segments -->
+      <div class="card">
+        <div class="card-head"><div class="dot"></div>Bond Zone Segments</div>
+        <div class="card-body">
+          <table class="seg-tbl" id="seg-tbl">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Length (ft)</th>
+                <th>α<sub>b</sub> Design <em style="text-transform:none;font-weight:400">— select from AASHTO table</em></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="seg-tbody"></tbody>
+          </table>
+          <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
+            <button class="btn-add" onclick="addSegment()">+ Add Segment</button>
+          </div>
+          <div class="note-box" style="margin:10px 0 0">
+            Each segment references a row from the α<sub>b</sub> table below (color-coded to match). For strata without
+            a matching description (e.g. corestone/weathered rock, CWR), label it in <strong>Description</strong> and
+            select whichever AASHTO row best represents its bond behavior &mdash; engineering judgment governs.
+          </div>
+        </div>
       </div>
-      <table class="ab-tbl" id="ab-tbl">
-        <thead>
-          <tr>
-            <th class="desc-hdr">Soil / Rock Description</th>
-            <th id="th-A">Type A</th>
-            <th id="th-B">Type B</th>
-            <th id="th-C">Type C</th>
-            <th id="th-D">Type D</th>
-            <th id="th-E">Type E</th>
-          </tr>
-        </thead>
-        <tbody id="ab-tbody"></tbody>
-      </table>
 
-      <div class="formula-bar">
-        <span>Eq. 10.9.3.5.2-1</span>
-        <span class="eq">R<sub>s</sub> = &pi; &times; d<sub>b</sub> &times; &alpha;<sub>b</sub> &times; L<sub>b</sub></span>
-        <span>d<sub>b</sub> = drill hole dia. (ft) &nbsp;&middot;&nbsp; &alpha;<sub>b</sub> = grout-to-ground bond (ksf) &nbsp;&middot;&nbsp; L<sub>b</sub> = bond length (ft)</span>
+      <!-- αb Reference Table -->
+      <div class="ref-toggle" onclick="toggleAbTable()" id="ab-ref-toggle-btn">&#9654; View Table C10.9.3.5.2-1 &mdash; Typical α<sub>b</sub> Ranges</div>
+      <div class="ref-panel" id="ab-ref-panel">
+        <div class="info-box">
+          <strong>Table C10.9.3.5.2-1 &nbsp;·&nbsp; Typical α<sub>b</sub> Ranges.</strong>
+          Colored dots show which segment(s) above reference each row. Active micropile type column highlighted.
+          Rock types: Type A only (gravity-grouted; pressure injection not used in rock).
+        </div>
+        <table class="ab-tbl" id="ab-tbl">
+          <thead>
+            <tr>
+              <th class="chip-hdr"></th>
+              <th class="desc-hdr">Soil / Rock Description</th>
+              <th id="th-A">Type A</th>
+              <th id="th-B">Type B</th>
+              <th id="th-C">Type C</th>
+              <th id="th-D">Type D</th>
+              <th id="th-E">Type E</th>
+            </tr>
+          </thead>
+          <tbody id="ab-tbody"></tbody>
+        </table>
+
+        <div class="formula-bar">
+          <span>Eq. 10.9.3.5.2-1</span>
+          <span class="eq">R<sub>s</sub> = &pi; &times; d<sub>b</sub> &times; &alpha;<sub>b</sub> &times; L<sub>b</sub></span>
+          <span>d<sub>b</sub> = drill hole dia. (ft) &nbsp;&middot;&nbsp; &alpha;<sub>b</sub> = grout-to-ground bond (ksf) &nbsp;&middot;&nbsp; L<sub>b</sub> = bond length (ft)</span>
+        </div>
       </div>
 
       <!-- AASHTO Table Reference Toggle -->
@@ -501,19 +577,7 @@
 
       <div class="field-row" style="margin-top:4px">
         <div class="field">
-          <label>&alpha;<sub>b</sub> Min (ksf)</label>
-          <input type="number" id="ab-min" placeholder="—" min="0" max="200" step="0.1" oninput="calc()">
-        </div>
-        <div class="field">
-          <label>&alpha;<sub>b</sub> Max (ksf)</label>
-          <input type="number" id="ab-max" placeholder="—" min="0" max="200" step="0.1" oninput="calc()">
-        </div>
-        <div class="field">
-          <label>&alpha;<sub>b</sub> Design (ksf) <em>— avg or override</em></label>
-          <input type="number" id="ab-avg" placeholder="—" min="0" max="200" step="0.1" oninput="calc()" class="override">
-        </div>
-        <div class="field">
-          <label>&phi;<sub>qs</sub> <em>— Table 10.5.5.2.5-1</em></label>
+          <label>&phi;<sub>qs</sub> <em>— Table 10.5.5.2.5-1, applies to full bond zone</em></label>
           <input type="number" id="phi-qs" placeholder="0.55" min="0.10" max="1.00" step="0.01" oninput="calc()">
         </div>
       </div>
@@ -521,11 +585,10 @@
       <hr class="section-div">
 
       <div class="calc-block">
-        <div class="calc-ref">Nominal Grout-to-Ground Bond Resistance &nbsp;·&nbsp; Eq. 10.9.3.5.2-1</div>
-        <div class="calc-line">R<sub>s</sub> = &pi; &times; d<sub>b</sub>(ft) &times; &alpha;<sub>b</sub> &times; L<sub>b</sub></div>
-        <div class="calc-line sub" id="geo-line-min">—</div>
-        <div class="calc-line sub" id="geo-line-avg">—</div>
-        <div class="calc-line sub" id="geo-line-max">—</div>
+        <div class="calc-ref">Nominal Grout-to-Ground Bond Resistance &nbsp;·&nbsp; Eq. 10.9.3.5.2-1 &nbsp;(per segment, summed)</div>
+        <div class="calc-line">R<sub>s</sub> = &pi; &times; d<sub>b</sub>(ft) &times; &Sigma;(&alpha;<sub>b,i</sub> &times; L<sub>i</sub>)</div>
+        <div id="geo-seg-lines"><div class="calc-line sub">—</div></div>
+        <div class="calc-line result" id="geo-line-total">—</div>
       </div>
       <div class="calc-block">
         <div class="calc-ref">Factored Resistance &nbsp;·&nbsp; Eq. 10.9.3.5.1-1 &nbsp;·&nbsp; Table 10.5.5.2.5-1</div>
@@ -535,40 +598,364 @@
       </div>
 
       <div class="result-row">
-        <div class="pill"><div class="pill-label">R<sub>s</sub> &nbsp;(Min &alpha;<sub>b</sub>)</div><div class="pill-value" id="pill-rs-min">—</div><div class="pill-sub">kips, nominal</div></div>
-        <div class="pill hl"><div class="pill-label">R<sub>s</sub> &nbsp;(Design &alpha;<sub>b</sub>)</div><div class="pill-value" id="pill-rs-avg">—</div><div class="pill-sub">kips, nominal</div></div>
-        <div class="pill"><div class="pill-label">R<sub>s</sub> &nbsp;(Max &alpha;<sub>b</sub>)</div><div class="pill-value" id="pill-rs-max">—</div><div class="pill-sub">kips, nominal</div></div>
+        <div class="pill hl"><div class="pill-label">R<sub>s</sub> &nbsp;(Design)</div><div class="pill-value" id="pill-rs-avg">—</div><div class="pill-sub">kips, nominal</div></div>
         <div class="pill ok-pill"><div class="pill-label">R<sub>R</sub> &nbsp;Factored</div><div class="pill-value" id="pill-rr">—</div><div class="pill-sub" id="pill-rr-sub">kips</div></div>
       </div>
 
     </div>
   </div>
 
-  <!-- PHASE 2: SUMMARY -->
+  <!-- PHASE 2: STRUCTURAL RESISTANCE -->
   <div class="phase">
-    <div class="phase-head">
+    <div class="phase-head" onclick="togglePhase(this)">
       <div class="phase-num">②</div>
       <div>
-        <div class="phase-title">Summary &amp; Demand Check</div>
-        <div class="phase-sub">Factored resistance vs. service limit state demands from the Structures team</div>
+        <div class="phase-title">Structural Resistance</div>
+        <div class="phase-sub">Cased &amp; uncased section capacity &nbsp;·&nbsp; Eq. 10.9.3.10.2 &amp; 10.9.3.10.3</div>
       </div>
-      <div class="phase-ref">§10.9.3.5</div>
+      <div class="phase-ref">§10.9.3.10</div>
+      <div class="phase-chevron">&#9662;</div>
     </div>
     <div class="phase-body">
+
+      <div class="info-box">
+        <strong>Simplified pass — no plunge length credit.</strong> Per §10.9.3.10.2/.10.3, the uncased section's
+        demand may be reduced by load transferred to the ground within the plunge length (§10.9.3.10.4). That
+        reduction isn't applied here, so both the cased and uncased sections are checked against the <em>full</em>
+        factored demand &mdash; conservative, but simple. Final design should incorporate plunge length once
+        established.
+      </div>
+
+      <!-- Section Properties -->
+      <div class="card">
+        <div class="card-head"><div class="dot"></div>Section Properties</div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field">
+              <label>f'<sub>c</sub> &mdash; Grout Strength (ksi)</label>
+              <input type="number" id="struct-fc" placeholder="—" min="0" max="20" step="0.1" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>A<sub>g</sub> &mdash; Grout Area (in&sup2;)</label>
+              <input type="number" id="struct-Ag" placeholder="—" min="0" max="500" step="0.01" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>f<sub>y</sub> &mdash; Steel Yield Strength (ksi)</label>
+              <input type="number" id="struct-fy" placeholder="—" min="0" max="150" step="1" oninput="calc()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>A<sub>b</sub> &mdash; Reinforcing Bar Area (in&sup2;)</label>
+              <input type="number" id="struct-Ab" placeholder="—" min="0" max="100" step="0.01" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>A<sub>c</sub> &mdash; Casing Area (in&sup2;)</label>
+              <input type="number" id="struct-Ac" placeholder="—" min="0" max="100" step="0.01" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>A<sub>ct</sub> &mdash; Casing Area <em>— net of threads</em> (in&sup2;)</label>
+              <input type="number" id="struct-Act" placeholder="—" min="0" max="100" step="0.01" oninput="calc()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>&phi;<sub>CC</sub> <em>— Cased, Compression</em></label>
+              <input type="number" id="phi-CC" placeholder="0.75" min="0" max="1" step="0.01" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>&phi;<sub>CU</sub> <em>— Uncased, Compression</em></label>
+              <input type="number" id="phi-CU" placeholder="0.75" min="0" max="1" step="0.01" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>&phi;<sub>TC</sub> <em>— Cased, Tension</em></label>
+              <input type="number" id="phi-TC" placeholder="0.80" min="0" max="1" step="0.01" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>&phi;<sub>TU</sub> <em>— Uncased, Tension</em></label>
+              <input type="number" id="phi-TU" placeholder="0.80" min="0" max="1" step="0.01" oninput="calc()">
+            </div>
+          </div>
+          <div class="note-box" style="margin:10px 0 0">
+            Defaults shown as placeholders match Table 10.5.5.2.5-2 (&phi;<sub>CC</sub>=0.75, &phi;<sub>CU</sub>=0.75,
+            &phi;<sub>TC</sub>=0.80, &phi;<sub>TU</sub>=0.80) — override per project if a different basis applies.
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-block">
+        <div class="calc-ref">Cased Length &nbsp;·&nbsp; Eq. 10.9.3.10.2a-2 &amp; 10.9.3.10.3a-2</div>
+        <div class="calc-line">R<sub>n,CC</sub> = 0.85[0.85 f'<sub>c</sub> A<sub>g</sub> + f<sub>y</sub>(A<sub>b</sub> + A<sub>c</sub>)]</div>
+        <div class="calc-line sub" id="struct-line-cc">—</div>
+        <div class="calc-line">R<sub>n,TC</sub> = f<sub>y</sub>(A<sub>b</sub> + A<sub>ct</sub>)</div>
+        <div class="calc-line sub" id="struct-line-tc">—</div>
+      </div>
+      <div class="calc-block">
+        <div class="calc-ref">Uncased Length &nbsp;·&nbsp; Eq. 10.9.3.10.2b-2 &amp; 10.9.3.10.3b-2</div>
+        <div class="calc-line">R<sub>n,CU</sub> = 0.85[0.85 f'<sub>c</sub> A<sub>g</sub> + f<sub>y</sub> A<sub>b</sub>]</div>
+        <div class="calc-line sub" id="struct-line-cu">—</div>
+        <div class="calc-line">R<sub>n,TU</sub> = f<sub>y</sub> A<sub>b</sub></div>
+        <div class="calc-line sub" id="struct-line-tu">—</div>
+      </div>
+
+      <div class="result-row">
+        <div class="pill"><div class="pill-label">R<sub>CC</sub> &nbsp;Cased Comp.</div><div class="pill-value" id="pill-rcc">—</div><div class="pill-sub">kips, factored</div></div>
+        <div class="pill"><div class="pill-label">R<sub>CU</sub> &nbsp;Uncased Comp.</div><div class="pill-value" id="pill-rcu">—</div><div class="pill-sub">kips, factored</div></div>
+        <div class="pill"><div class="pill-label">R<sub>TC</sub> &nbsp;Cased Tension</div><div class="pill-value" id="pill-rtc">—</div><div class="pill-sub">kips, factored</div></div>
+        <div class="pill"><div class="pill-label">R<sub>TU</sub> &nbsp;Uncased Tension</div><div class="pill-value" id="pill-rtu">—</div><div class="pill-sub">kips, factored</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 3: GROUP EFFECTS -->
+  <div class="phase">
+    <div class="phase-head" onclick="togglePhase(this)">
+      <div class="phase-num" id="group-phase-num">③</div>
+      <div>
+        <div class="phase-title">Group Effects</div>
+        <div class="phase-sub">Micropile group resistance — compression &amp; uplift &nbsp;·&nbsp; §10.9.3.6 &amp; §10.9.3.8</div>
+      </div>
+      <div class="phase-ref">§10.7.3.9 &amp; §10.7.3.11</div>
+      <div class="phase-chevron">&#9662;</div>
+    </div>
+    <div class="phase-body">
+
+      <div class="field-row" style="margin-bottom:14px;align-items:center">
+        <div class="field">
+          <label>Apply Group Check to This Location? <em>— multi-pile footing/cap</em></label>
+          <div class="method-toggle" id="group-apply-toggle">
+            <button class="method-btn" onclick="setGroupApply('no')">No</button>
+            <button class="method-btn" onclick="setGroupApply('yes')">Yes</button>
+          </div>
+          <input type="hidden" id="group-apply" value="no">
+        </div>
+      </div>
+
+      <div class="note-box" id="group-na-msg" style="margin-bottom:0">
+        Group effects check not applicable for this location. Enable above if this location represents a
+        multi-pile footing/cap where geotechnical group resistance (rather than single-pile resistance) may govern.
+      </div>
+
+      <div id="group-content" style="display:none">
+
+      <div class="card">
+        <div class="card-head"><div class="dot"></div>Group Configuration</div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field">
+              <label>Piles in Group, n</label>
+              <input type="number" id="group-n" placeholder="—" min="1" max="200" step="1" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>C-C Spacing, s (ft)</label>
+              <input type="number" id="group-spacing" placeholder="—" min="0" max="50" step="0.1" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Spacing / Diameter</label>
+              <span class="derived-val" id="group-sd-ratio">—</span>
+            </div>
+            <div class="field">
+              <label>Soil Condition for Group Check</label>
+              <select id="group-soil" onchange="toggleGroupSoilFields(); calc()">
+                <option value="clay">Cohesive (Clay)</option>
+                <option value="sand">Cohesionless (Sand)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row" style="margin-bottom:0">
+            <div class="field">
+              <label>Block Width, X (ft)</label>
+              <input type="number" id="group-X" placeholder="—" min="0" max="200" step="0.5" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Block Length, Y (ft)</label>
+              <input type="number" id="group-Y" placeholder="—" min="0" max="200" step="0.5" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Block Depth, Z (ft) <em>— cap to pile tip</em></label>
+              <input type="number" id="group-Z" placeholder="—" min="0" max="500" step="0.5" oninput="calc()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note-box">
+        X, Y, Z define the equivalent-pier / block geometry bounded by the outermost piles (Figures C10.7.3.9-1,
+        10.7.3.11-1/2). The spacing/diameter ratio below uses d<sub>b</sub> from Phase ①.
+      </div>
+
+      <!-- COMPRESSION GROUP CHECK -->
+      <div class="card">
+        <div class="card-head"><div class="dot"></div>Compression — Group Resistance &nbsp;·&nbsp; §10.7.3.9</div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field">
+              <label>Cap in Firm Contact w/ Ground?</label>
+              <select id="group-cap-contact" onchange="calc()">
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Surface Soil Condition</label>
+              <select id="group-soil-surface" onchange="calc()">
+                <option value="stiff">Stiff</option>
+                <option value="soft">Soft</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Efficiency Factor, &eta;</label>
+              <span class="derived-val" id="group-eta">—</span>
+            </div>
+          </div>
+          <div class="field-row" id="group-comp-clay-fields" style="margin-bottom:0">
+            <div class="field">
+              <label>Avg. Undrained Shear Strength, S&#772;<sub>u</sub> (ksf)</label>
+              <input type="number" id="group-su-avg" placeholder="—" min="0" max="20" step="0.05" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Shear Strength at Base, S<sub>u</sub> (ksf)</label>
+              <input type="number" id="group-su-base" placeholder="—" min="0" max="20" step="0.05" oninput="calc()">
+            </div>
+          </div>
+          <hr class="section-div">
+          <div class="calc-block">
+            <div class="calc-ref">Sum of Individual Piles &nbsp;·&nbsp; §10.7.3.9</div>
+            <div class="calc-line" id="group-line-sum-comp">—</div>
+          </div>
+          <div class="calc-block" id="group-block-comp-wrap">
+            <div class="calc-ref">Equivalent Pier (Block) &nbsp;·&nbsp; Eq. C10.7.3.9-1 &nbsp;·&nbsp; Clay Only</div>
+            <div class="calc-line" id="group-line-nc">—</div>
+            <div class="calc-line" id="group-line-qg">—</div>
+            <div class="calc-line" id="group-line-block-comp">—</div>
+          </div>
+          <div class="result-row">
+            <div class="pill"><div class="pill-label">R<sub>R</sub> &nbsp;Sum of Piles</div><div class="pill-value" id="pill-group-sum-comp">—</div><div class="pill-sub">kips</div></div>
+            <div class="pill"><div class="pill-label">R<sub>R</sub> &nbsp;Block</div><div class="pill-value" id="pill-group-block-comp">—</div><div class="pill-sub">kips, clay only</div></div>
+            <div class="pill ok-pill"><div class="pill-label">R<sub>R</sub> &nbsp;Governing</div><div class="pill-value" id="pill-group-comp">—</div><div class="pill-sub" id="pill-group-comp-sub">kips</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLIFT GROUP CHECK -->
+      <div class="card">
+        <div class="card-head"><div class="dot"></div>Uplift — Group Resistance &nbsp;·&nbsp; §10.7.3.11</div>
+        <div class="card-body">
+          <div class="field-row" id="group-up-clay-fields">
+            <div class="field">
+              <label>Weight of Block (soil + piles + cap), W<sub>g</sub> (kips) <em>— clay</em></label>
+              <input type="number" id="group-wg-clay" placeholder="—" min="0" max="100000" step="1" oninput="calc()">
+            </div>
+          </div>
+          <div class="field-row" id="group-up-sand-fields" style="margin-bottom:0">
+            <div class="field">
+              <label>Effective Unit Weight, &gamma;&prime; (kcf) <em>— sand, buoyant if below GWT</em></label>
+              <input type="number" id="group-unit-wt" placeholder="—" min="0" max="0.2" step="0.001" oninput="calc()">
+            </div>
+          </div>
+          <hr class="section-div">
+          <div class="calc-block">
+            <div class="calc-ref">Sum of Individual Piles &nbsp;·&nbsp; §10.7.3.11</div>
+            <div class="calc-line" id="group-line-sum-up">—</div>
+          </div>
+          <div class="calc-block" id="group-block-up-wrap">
+            <div class="calc-ref">Uplift Block &nbsp;·&nbsp; Eq. 10.7.3.11-2 &nbsp;/&nbsp; 1H:4V Spread</div>
+            <div class="calc-line" id="group-line-wg">—</div>
+            <div class="calc-line" id="group-line-block-up">—</div>
+          </div>
+          <div class="result-row">
+            <div class="pill"><div class="pill-label">R<sub>R</sub> &nbsp;Sum of Piles</div><div class="pill-value" id="pill-group-sum-up">—</div><div class="pill-sub">kips</div></div>
+            <div class="pill"><div class="pill-label">R<sub>R</sub> &nbsp;Block</div><div class="pill-value" id="pill-group-block-up">—</div><div class="pill-sub">kips</div></div>
+            <div class="pill ok-pill"><div class="pill-label">R<sub>R</sub> &nbsp;Governing</div><div class="pill-value" id="pill-group-up">—</div><div class="pill-sub" id="pill-group-up-sub">kips</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP DEMAND -->
+      <div class="card">
+        <div class="card-head"><div class="dot"></div>Total Group Demand</div>
+        <div class="card-body">
+          <div class="field-row" style="margin-bottom:0">
+            <div class="field">
+              <label>Total Compression Demand (kips) <em>— default n &times; P<sub>s</sub></em></label>
+              <input type="number" id="group-pu-total" placeholder="—" min="0" max="500000" step="0.1" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Total Tension Demand (kips) <em>— default n &times; T<sub>s</sub>, 0 if N/A</em></label>
+              <input type="number" id="group-tu-total" placeholder="—" min="0" max="500000" step="0.1" oninput="calc()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-cards" id="group-status-cards">
+        <div class="status-card na" id="sc-group-comp">
+          <div class="status-badge na"><span class="status-icon">○</span>Group — Compression</div>
+          <div class="status-label">Group Resistance vs. Total Compression Demand</div>
+          <div class="status-row"><span>P<sub>group</sub></span><span id="sc-group-pu">—</span></div>
+          <div class="status-row"><span>R<sub>R</sub></span><span id="sc-group-rr-c">—</span></div>
+          <div class="status-dcr na" id="sc-group-dcr-c">—</div>
+        </div>
+        <div class="status-card na" id="sc-group-ten">
+          <div class="status-badge na"><span class="status-icon">○</span>Group — Uplift</div>
+          <div class="status-label">Group Resistance vs. Total Tension Demand</div>
+          <div class="status-row"><span>T<sub>group</sub></span><span id="sc-group-tu">—</span></div>
+          <div class="status-row"><span>R<sub>R</sub></span><span id="sc-group-rr-t">—</span></div>
+          <div class="status-dcr na" id="sc-group-dcr-t">—</div>
+        </div>
+      </div>
+
+      </div><!-- /group-content -->
+
+    </div>
+  </div>
+
+  <!-- PHASE 3: SUMMARY -->
+  <div class="phase">
+    <div class="phase-head" onclick="togglePhase(this)">
+      <div class="phase-num" id="summary-phase-num">④</div>
+      <div>
+        <div class="phase-title">Summary &amp; Demand Check</div>
+        <div class="phase-sub">Factored bond resistance vs. Service and Strength I demands from the Structures team</div>
+      </div>
+      <div class="phase-ref">§10.9.3.5</div>
+      <div class="phase-chevron">&#9662;</div>
+    </div>
+    <div class="phase-body">
+      <div class="warn-box">
+        <strong>Note on Strength I comparison:</strong> per §C10.9.3.5.1, the presumptive α<sub>b</sub> bond
+        resistance approach is calibrated for comparison against <strong>service</strong> limit state demands —
+        that is the governing code check. The Strength I rows below are shown as an additional reference
+        cross-check against the same R<sub>R</sub>, not a substitute for the service check.
+      </div>
       <div class="status-cards" id="status-cards">
         <div class="status-card na" id="sc-comp">
-          <div class="status-badge na"><span class="status-icon">○</span>Compression Check</div>
+          <div class="status-badge na"><span class="status-icon">○</span>Compression — Service</div>
           <div class="status-label">Bond Resistance vs. Service Compression</div>
           <div class="status-row"><span>P<sub>s</sub></span><span id="sc-pu">—</span></div>
           <div class="status-row"><span>R<sub>R</sub></span><span id="sc-rr-c">—</span></div>
           <div class="status-dcr na" id="sc-dcr-c">—</div>
         </div>
         <div class="status-card na" id="sc-ten">
-          <div class="status-badge na"><span class="status-icon">○</span>Tension Check</div>
+          <div class="status-badge na"><span class="status-icon">○</span>Tension — Service</div>
           <div class="status-label">Bond Resistance vs. Service Tension (Uplift)</div>
           <div class="status-row"><span>T<sub>s</sub></span><span id="sc-tu">—</span></div>
           <div class="status-row"><span>R<sub>R</sub></span><span id="sc-rr-t">—</span></div>
           <div class="status-dcr na" id="sc-dcr-t">—</div>
+        </div>
+        <div class="status-card na" id="sc-comp-str">
+          <div class="status-badge na"><span class="status-icon">○</span>Compression — Strength I</div>
+          <div class="status-label">Bond Resistance vs. Strength I Compression <em style="font-weight:400">(reference)</em></div>
+          <div class="status-row"><span>P<sub>u</sub></span><span id="sc-pu-str">—</span></div>
+          <div class="status-row"><span>R<sub>R</sub></span><span id="sc-rr-c-str">—</span></div>
+          <div class="status-dcr na" id="sc-dcr-c-str">—</div>
+        </div>
+        <div class="status-card na" id="sc-ten-str">
+          <div class="status-badge na"><span class="status-icon">○</span>Tension — Strength I</div>
+          <div class="status-label">Bond Resistance vs. Strength I Tension <em style="font-weight:400">(reference)</em></div>
+          <div class="status-row"><span>T<sub>u</sub></span><span id="sc-tu-str">—</span></div>
+          <div class="status-row"><span>R<sub>R</sub></span><span id="sc-rr-t-str">—</span></div>
+          <div class="status-dcr na" id="sc-dcr-t-str">—</div>
         </div>
       </div>
       <table class="dcr-tbl">
@@ -579,7 +966,7 @@
             <th>&phi;<sub>qs</sub></th>
             <th>R<sub>n</sub> (kips)</th>
             <th>R<sub>R</sub> (kips)</th>
-            <th>Service Demand (kips)</th>
+            <th>Demand (kips)</th>
             <th>CDR</th>
             <th>Status</th>
           </tr>
@@ -587,7 +974,9 @@
         <tbody id="dcr-tbody"></tbody>
       </table>
       <div class="note-box" style="margin-top:12px;margin-bottom:0">
-        <strong>CDR</strong> = Factored Resistance (R<sub>R</sub>) ÷ Service Demand. Per §C10.9.3.5.1, bond resistance is compared against service limit state demands. Values ≥ 1.00 are adequate.
+        <strong>CDR</strong> = Factored Resistance (R<sub>R</sub>) ÷ Demand. Per §C10.9.3.5.1, the governing
+        comparison is bond resistance vs. <strong>service</strong> limit state demand; Strength I rows are
+        supplementary. Values ≥ 1.00 are adequate.
       </div>
     </div>
   </div>
@@ -651,16 +1040,31 @@ const AB_DATA = [
 // ═══════════════════════════════════════════
 //  FIELD IDs (saved/loaded per location)
 // ═══════════════════════════════════════════
-const CALC_FIELDS = ['footing-el','pu','tu',
-                     'db','Lc','Lb','ab-min','ab-max','ab-avg','phi-qs'];
+const CALC_FIELDS = ['footing-el','pu','tu','pu-str','tu-str',
+                     'db','Lc','phi-qs',
+                     'struct-fc','struct-Ag','struct-fy','struct-Ab','struct-Ac','struct-Act',
+                     'phi-CC','phi-CU','phi-TC','phi-TU',
+                     'group-apply','group-n','group-spacing','group-soil','group-X','group-Y','group-Z',
+                     'group-cap-contact','group-soil-surface','group-su-avg','group-su-base',
+                     'group-wg-clay','group-unit-wt','group-pu-total','group-tu-total'];
 
 // ═══════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════
+function defaultSegment(colorIdx) {
+  // Timestamp+random key: guaranteed unique across locations, JSON loads, and sessions,
+  // with no shared counter to keep in sync (that was the source of an earlier key-collision bug).
+  const key = 'seg-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  return { key, desc:'', tableRowKey:'', lengthFt:'', colorIdx: colorIdx };
+}
+
 function newLoc(n) {
-  const loc = { name: 'Location ' + n, _pileType:'A', _soilId:null,
-                _RsAvg:0, _RsMin:0, _RsMax:0, _RR:0, _phi:0.55 };
+  const loc = { name: 'Location ' + n, _pileType:'A',
+                _RsAvg:0, _RR:0, _phi:0.55,
+                _RCC:0, _RCU:0, _RTC:0, _RTU:0, segments: [] };
   CALC_FIELDS.forEach(f => { loc[f] = ''; });
+  loc['group-apply'] = 'no';
+  loc['Lb'] = '';
   return loc;
 }
 
@@ -668,8 +1072,20 @@ let locations   = [newLoc(1)];
 let activeIdx   = 0;
 let isSumTab    = false;
 let selectedType = 'A';
-let selectedSoilId = null;
+let segments    = [];   // live segment array for the active location
 let locCount    = 1; // for naming new locations
+
+// Same 8-color pastel cycle used for strata coloring in the shear strength tool
+const SEG_COLORS = [
+  {bg:'#dbeafe',br:'#93c5fd'},  // blue
+  {bg:'#dcfce7',br:'#86efac'},  // green
+  {bg:'#fef9c3',br:'#fde047'},  // yellow
+  {bg:'#fed7aa',br:'#fdba74'},  // orange
+  {bg:'#ede9fe',br:'#c4b5fd'},  // purple
+  {bg:'#fce7f3',br:'#f9a8d4'},  // pink
+  {bg:'#cffafe',br:'#67e8f9'},  // cyan
+  {bg:'#d9f99d',br:'#bef264'},  // lime
+];
 
 // ═══════════════════════════════════════════
 //  INIT
@@ -697,8 +1113,8 @@ function saveCurrentLocation() {
   });
   const nameEl = document.getElementById('loc-name');
   if (nameEl) loc.name = nameEl.value || ('Location ' + (activeIdx + 1));
-  loc._pileType  = selectedType;
-  loc._soilId    = selectedSoilId;
+  loc._pileType = selectedType;
+  loc.segments  = segments.map(s => ({...s}));
 }
 
 function loadLocation(idx) {
@@ -709,19 +1125,30 @@ function loadLocation(idx) {
   });
   const nameEl = document.getElementById('loc-name');
   if (nameEl) nameEl.value = loc.name || '';
-  // Restore type
+  // Guard select defaults for group-effects fields (blank value -> keep first option)
+  ['group-soil','group-cap-contact','group-soil-surface'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.selectedIndex = 0;
+  });
+  toggleGroupSoilFields();
+  const gaEl = document.getElementById('group-apply');
+  if (gaEl && !gaEl.value) gaEl.value = 'no';
+  updateGroupApplyUI();
+  // Restore bond zone segments (default to one blank segment for a fresh location)
+  segments = (loc.segments && loc.segments.length)
+    ? loc.segments.map(s => ({...s}))
+    : [defaultSegment(0)];
+  // Repair any duplicate keys inherited from an older save file (pre-dates the
+  // collision-proof key scheme) — keep the first occurrence's key, re-key the rest.
+  const seenKeys = new Set();
+  segments.forEach(s => {
+    if (!s.key || seenKeys.has(s.key)) {
+      s.key = 'seg-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+    seenKeys.add(s.key);
+  });
+  // Restore type — also re-renders segments + reference table chips and recalculates
   setTypeInternal(loc._pileType || 'A');
-  // Restore soil selection
-  if (selectedSoilId) {
-    const prev = document.getElementById('row-' + selectedSoilId);
-    if (prev) prev.classList.remove('sel-row');
-  }
-  selectedSoilId = null;
-  if (loc._soilId) {
-    selectedSoilId = loc._soilId;
-    const tr = document.getElementById('row-' + loc._soilId);
-    if (tr) tr.classList.add('sel-row');
-  }
 }
 
 function switchLocation(idx) {
@@ -754,7 +1181,7 @@ function addLocation() {
   locations.push(newLoc(locCount));
   activeIdx = locations.length - 1;
   isSumTab  = false;
-  renderTabs();
+  sortLocations();
   document.getElementById('loc-main-content').style.display = '';
   document.getElementById('summary-view').style.display = 'none';
   loadLocation(activeIdx);
@@ -770,7 +1197,7 @@ function deleteLocation(idx, e) {
   locations.splice(idx, 1);
   if (activeIdx >= locations.length) activeIdx = locations.length - 1;
   isSumTab = false;
-  renderTabs();
+  sortLocations();
   document.getElementById('loc-main-content').style.display = '';
   document.getElementById('summary-view').style.display = 'none';
   loadLocation(activeIdx);
@@ -780,9 +1207,32 @@ function deleteLocation(idx, e) {
 function updateLocName() {
   const val = document.getElementById('loc-name').value || ('Location ' + (activeIdx + 1));
   locations[activeIdx].name = val;
-  // Update tab label live
-  const tab = document.querySelector('.loc-tab[data-idx="' + activeIdx + '"] .loc-tab-name');
-  if (tab) tab.textContent = val;
+  sortLocations();
+}
+
+// ═══════════════════════════════════════════
+//  LOCATION SORT — tabs auto-sort by design location name
+// ═══════════════════════════════════════════
+// Natural sort: pad embedded numbers so alphabetic sort gives numeric ordering
+// e.g. "Pier 2" < "Pier 10", not "Pier 10" < "Pier 2"
+function naturalSortKey(s) {
+  return s.replace(/(\d+)/g, (_, n) => n.padStart(10, '0'));
+}
+
+// Sorts the locations array in place by name (natural sort), keeps the
+// currently active location selected even though its index may shift, then
+// re-renders the tab bar. Because print-all and the summary table already
+// iterate the same `locations` array, sorting it here keeps everything
+// (tabs, summary, print) in sync automatically.
+function sortLocations() {
+  const activeLoc = isSumTab ? null : locations[activeIdx];
+  locations.sort((a, b) => {
+    const la = (a.name || '').toUpperCase();
+    const lb = (b.name || '').toUpperCase();
+    return naturalSortKey(la).localeCompare(naturalSortKey(lb));
+  });
+  if (activeLoc) activeIdx = locations.indexOf(activeLoc);
+  renderTabs();
 }
 
 // ═══════════════════════════════════════════
@@ -830,7 +1280,6 @@ function renderTabs() {
 function renderSummaryTable() {
   // Recompute all locations' results
   const savedIdx = activeIdx;
-  const savedType = selectedType, savedSoil = selectedSoilId;
 
   locations.forEach((loc, i) => {
     activeIdx = i;
@@ -839,21 +1288,20 @@ function renderSummaryTable() {
   });
 
   activeIdx = savedIdx;
-  setTypeInternal(savedType);
-  if (savedSoil) {
-    selectedSoilId = savedSoil;
-    const tr = document.getElementById('row-' + savedSoil);
-    if (tr) tr.classList.add('sel-row');
-  } else {
-    selectedSoilId = null;
-  }
+  loadLocation(savedIdx);
 
-  const getSoilLabel = id => {
-    if (!id) return '—';
-    const r = AB_DATA.find(x => x.id === id);
-    if (!r) return '—';
-    // Strip HTML tags for table display
-    return r.desc.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().split('\n')[0];
+  // Segment descriptions joined for the summary row; effective alpha_b backed out of R_s
+  // so the column stays meaningful even though each location may have several segments.
+  const segLabel = loc => {
+    const segs = (loc.segments || []).filter(s => s.desc || s.tableRowKey);
+    if (!segs.length) return '—';
+    return segs.map(s => s.desc || (AB_DATA.find(r => r.id === s.tableRowKey) ? abShortLabel(AB_DATA.find(r => r.id === s.tableRowKey)) : '—')).join(', ');
+  };
+  const effAlpha = loc => {
+    const dbFt = (parseFloat(loc['db']) || 0) / 12;
+    const lb   = parseFloat(loc['Lb']) || 0;
+    if (!dbFt || !lb || !loc._RsAvg) return '—';
+    return (loc._RsAvg / (Math.PI * dbFt * lb)).toFixed(2);
   };
 
   let html = `<table class="sum-tbl">
@@ -861,24 +1309,39 @@ function renderSummaryTable() {
     <th class="left" style="min-width:180px">Location</th>
     <th>d<sub>b</sub> (in)</th>
     <th>L<sub>b</sub> (ft)</th>
-    <th class="sum-col-soil left" style="min-width:150px">Soil / Rock</th>
-    <th>&alpha;<sub>b</sub> (ksf)</th>
+    <th class="sum-col-soil left" style="min-width:150px">Segments</th>
+    <th>&alpha;<sub>b</sub> <em style="font-style:normal">(eff., ksf)</em></th>
     <th>&phi;<sub>qs</sub></th>
     <th>R<sub>s</sub> (k)</th>
     <th>R<sub>R</sub> (k)</th>
     <th>P<sub>s</sub> (k)</th>
     <th>T<sub>s</sub> (k)</th>
-    <th>Comp CDR</th>
-    <th>Ten CDR</th>
+    <th>Comp CDR <em style="font-style:normal;font-weight:400">(gov.)</em></th>
+    <th>Ten CDR <em style="font-style:normal;font-weight:400">(gov.)</em></th>
     <th class="sum-col-status">Status</th>
   </tr></thead><tbody>`;
 
   locations.forEach(loc => {
-    const rr   = loc._RR || 0;
-    const pu   = parseFloat(loc['pu']) || 0;
-    const tu   = parseFloat(loc['tu']) || 0;
-    const dcrC = (rr > 0 && pu > 0) ? rr / pu : null;
-    const dcrT = (rr > 0 && tu > 0) ? rr / tu : null;
+    const rr    = loc._RR || 0;
+    const pu    = parseFloat(loc['pu'])     || 0;
+    const tu    = parseFloat(loc['tu'])     || 0;
+    const puStr = parseFloat(loc['pu-str']) || 0;
+    const tuStr = parseFloat(loc['tu-str']) || 0;
+    const RCC = loc._RCC || 0, RCU = loc._RCU || 0, RTC = loc._RTC || 0, RTU = loc._RTU || 0;
+
+    // Governing CDR = worst case across geotechnical bond (service) and structural
+    // cased/uncased checks (Strength I) — whichever applicable ratios are available.
+    const compVals = [];
+    if (rr > 0 && pu > 0) compVals.push(rr / pu);
+    if (RCC > 0 && puStr > 0) compVals.push(RCC / puStr);
+    if (RCU > 0 && puStr > 0) compVals.push(RCU / puStr);
+    const tenVals = [];
+    if (rr > 0 && tu > 0) tenVals.push(rr / tu);
+    if (RTC > 0 && tuStr > 0) tenVals.push(RTC / tuStr);
+    if (RTU > 0 && tuStr > 0) tenVals.push(RTU / tuStr);
+
+    const dcrC = compVals.length ? Math.min(...compVals) : null;
+    const dcrT = tenVals.length  ? Math.min(...tenVals)  : null;
     const cOk  = dcrC !== null && dcrC >= 1.0;
     const cNg  = dcrC !== null && dcrC < 1.0;
     const tOk  = dcrT !== null && dcrT >= 1.0;
@@ -886,14 +1349,13 @@ function renderSummaryTable() {
     const allOk = (!cNg) && (!tNg);
     const anyNg = cNg || tNg;
 
-    const soilLabel = getSoilLabel(loc._soilId);
     const trClass = anyNg ? ' class="ng-row"' : '';
     html += `<tr${trClass}>
       <td class="left">${escHtml(loc.name || '—')}</td>
       <td>${loc['db'] || '—'}</td>
       <td>${loc['Lb'] || '—'}</td>
-      <td class="sum-col-soil left" style="font-family:var(--sans);font-size:11px">${soilLabel}</td>
-      <td>${loc['ab-avg'] || '—'}</td>
+      <td class="sum-col-soil left" style="font-family:var(--sans);font-size:11px">${escHtml(segLabel(loc))}</td>
+      <td>${effAlpha(loc)}</td>
       <td>${loc['phi-qs'] || '0.55'}</td>
       <td>${fmtR(loc._RsAvg)}</td>
       <td>${fmtR(rr)}</td>
@@ -907,6 +1369,11 @@ function renderSummaryTable() {
     </tr>`;
   });
   html += '</tbody></table>';
+  html += `<div class="note-box" style="margin-top:10px">
+    <strong>Comp/Ten CDR (gov.)</strong> = worst case across geotechnical bond (service demand) and structural
+    cased/uncased checks (Strength I demand). See each location's Summary &amp; Demand Check phase for the
+    individual checks that govern.
+  </div>`;
   document.getElementById('summary-table-wrap').innerHTML = html;
 }
 
@@ -925,14 +1392,13 @@ function buildAbTable() {
       sepAdded = true;
       const sep = document.createElement('tr');
       sep.className = 'tbl-sep';
-      sep.innerHTML = `<td colspan="6"><sup>(1)</sup> Rock types — Type A (gravity-grouted) only. Types B–E: N/A.</td>`;
+      sep.innerHTML = `<td colspan="7"><sup>(1)</sup> Rock types — Type A (gravity-grouted) only. Types B–E: N/A.</td>`;
       tbody.appendChild(sep);
     }
     const tr = document.createElement('tr');
     tr.id = 'row-' + row.id;
-    tr.onclick = () => selectSoil(row.id);
     const typeIdx = ['A','B','C','D','E'].indexOf(selectedType);
-    let html = `<td class="desc-cell">${row.desc}</td>`;
+    let html = `<td class="chip-cell" id="chip-${row.id}"></td><td class="desc-cell">${row.desc}</td>`;
     ['A','B','C','D','E'].forEach((t, i) => {
       const val = row.vals[t];
       const act = i === typeIdx ? ' act-col' : '';
@@ -944,6 +1410,7 @@ function buildAbTable() {
     tbody.appendChild(tr);
   });
   updateTypeHighlight();
+  renderAbChips();
 }
 
 function updateTypeHighlight() {
@@ -955,34 +1422,32 @@ function updateTypeHighlight() {
   AB_DATA.forEach(row => {
     const tr = document.getElementById('row-' + row.id);
     if (!tr) return;
-    tr.querySelectorAll('td:not(.desc-cell)').forEach((td, i) => {
+    tr.querySelectorAll('td:not(.desc-cell):not(.chip-cell)').forEach((td, i) => {
       td.classList.toggle('act-col', i === idx);
     });
   });
 }
 
-function selectSoil(id) {
-  if (selectedSoilId) {
-    const p = document.getElementById('row-' + selectedSoilId);
-    if (p) p.classList.remove('sel-row');
-  }
-  selectedSoilId = id;
-  const tr = document.getElementById('row-' + id);
-  if (tr) tr.classList.add('sel-row');
-  const row = AB_DATA.find(r => r.id === id);
-  if (!row) return;
-  const vals = row.vals[selectedType] || row.vals['A'];
-  if (vals) {
-    document.getElementById('ab-min').value = vals[0].toFixed(1);
-    document.getElementById('ab-max').value = vals[1].toFixed(1);
-    document.getElementById('ab-avg').value = ((vals[0]+vals[1])/2).toFixed(2);
-  }
-  calc();
+// Plain-text version of an AB_DATA row's description, for <option> labels and summary cells
+function abShortLabel(row) {
+  return row.desc.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+}
+
+// Colored dots painted into the reference table showing which segment(s) point at each row
+function renderAbChips() {
+  AB_DATA.forEach(row => {
+    const cell = document.getElementById('chip-' + row.id);
+    if (!cell) return;
+    const using = segments.filter(s => s.tableRowKey === row.id);
+    cell.innerHTML = using.map(s => {
+      const c = SEG_COLORS[s.colorIdx % SEG_COLORS.length];
+      return `<span class="chip-dot" style="background:${c.br}" title="Segment ${segments.indexOf(s)+1}"></span>`;
+    }).join('');
+  });
 }
 
 function setType(t) {
   setTypeInternal(t);
-  if (selectedSoilId) selectSoil(selectedSoilId);
 }
 
 function setTypeInternal(t) {
@@ -991,6 +1456,73 @@ function setTypeInternal(t) {
     b.classList.toggle('active', ['A','B','C','D','E'][i] === t);
   });
   updateTypeHighlight();
+  // Rock rows only exist for Type A — clear any segment selection that's no longer valid
+  segments.forEach(s => {
+    if (!s.tableRowKey) return;
+    const row = AB_DATA.find(r => r.id === s.tableRowKey);
+    if (row && row.rock && t !== 'A') s.tableRowKey = '';
+  });
+  renderSegments();
+  calc();
+}
+
+// ═══════════════════════════════════════════
+//  BOND ZONE SEGMENTS
+// ═══════════════════════════════════════════
+function addSegment() {
+  segments.push(defaultSegment(segments.length));
+  renderSegments();
+  calc();
+}
+
+function removeSegment(key) {
+  if (segments.length <= 1) return; // always keep at least one segment
+  segments = segments.filter(s => s.key !== key);
+  renderSegments();
+  calc();
+}
+
+function updateSegField(key, field, value) {
+  const s = segments.find(x => x.key === key);
+  if (!s) return;
+  s[field] = value;
+  if (field === 'tableRowKey') renderAbChips();
+  calc();
+}
+
+function buildSegOptions(currentKey) {
+  let opts = '<option value="">— select —</option>';
+  let sepAdded = false;
+  AB_DATA.forEach(row => {
+    if (row.rock && selectedType !== 'A') return; // rock rows only valid for Type A
+    if (row.rock && !sepAdded) { sepAdded = true; }
+    const vals = row.vals[selectedType] || row.vals['A'];
+    if (!vals) return;
+    const label = `${abShortLabel(row)}: ${vals[0].toFixed(1)}\u2013${vals[1].toFixed(1)} ksf`;
+    const sel = row.id === currentKey ? ' selected' : '';
+    opts += `<option value="${row.id}"${sel}>${escHtml(label)}</option>`;
+  });
+  return opts;
+}
+
+function renderSegments() {
+  const tbody = document.getElementById('seg-tbody');
+  tbody.innerHTML = '';
+  segments.forEach((s, i) => {
+    const c = SEG_COLORS[s.colorIdx % SEG_COLORS.length];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="seg-num" style="background:${c.bg};border-right-color:${c.br}">${i + 1}</td>
+      <td><input type="text" value="${escHtml(s.desc)}" placeholder="e.g. Residual soils"
+            oninput="updateSegField('${s.key}','desc',this.value)"></td>
+      <td class="seg-len"><input type="number" min="0" max="500" step="0.5" value="${escHtml(s.lengthFt)}" placeholder="—"
+            oninput="updateSegField('${s.key}','lengthFt',this.value)"></td>
+      <td><select onchange="updateSegField('${s.key}','tableRowKey',this.value)">${buildSegOptions(s.tableRowKey)}</select></td>
+      <td class="seg-del"><button class="seg-del-btn" ${segments.length <= 1 ? 'disabled' : ''}
+            onclick="removeSegment('${s.key}')" title="Remove segment">&times;</button></td>`;
+    tbody.appendChild(tr);
+  });
+  renderAbChips();
 }
 
 // ═══════════════════════════════════════════
@@ -1004,100 +1536,359 @@ function toggleRefTable() {
     ' View AASHTO Table 10.5.5.2.5-1 &mdash; Resistance Factors (&phi;<sub>qs</sub>)';
 }
 
+function toggleAbTable() {
+  const panel = document.getElementById('ab-ref-panel');
+  const btn   = document.getElementById('ab-ref-toggle-btn');
+  const open  = panel.classList.toggle('open');
+  btn.innerHTML = (open ? '&#9660;' : '&#9654;') +
+    ' View Table C10.9.3.5.2-1 &mdash; Typical &alpha;<sub>b</sub> Ranges';
+}
+
+function togglePhase(headEl) {
+  headEl.closest('.phase').classList.toggle('collapsed');
+}
+
+// ═══════════════════════════════════════════
+//  GROUP EFFECTS — show/hide clay- vs sand-only fields
+// ═══════════════════════════════════════════
+function toggleGroupSoilFields() {
+  const soil = document.getElementById('group-soil').value;
+  const isClay = soil === 'clay';
+  document.getElementById('group-comp-clay-fields').style.display = isClay ? '' : 'none';
+  document.getElementById('group-block-comp-wrap').style.display  = isClay ? '' : 'none';
+  document.getElementById('group-up-clay-fields').style.display   = isClay ? '' : 'none';
+  document.getElementById('group-up-sand-fields').style.display   = isClay ? 'none' : '';
+}
+
+// ═══════════════════════════════════════════
+//  GROUP EFFECTS — apply toggle (collapses phase + renumbers Summary when off)
+// ═══════════════════════════════════════════
+function setGroupApply(val) {
+  document.getElementById('group-apply').value = val;
+  updateGroupApplyUI();
+  calc();
+}
+
+function updateGroupApplyUI() {
+  const enabled = document.getElementById('group-apply').value === 'yes';
+  document.querySelectorAll('#group-apply-toggle .method-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && !enabled) || (i === 1 && enabled));
+  });
+  document.getElementById('group-content').style.display = enabled ? '' : 'none';
+  document.getElementById('group-na-msg').style.display  = enabled ? 'none' : '';
+  document.getElementById('summary-phase-num').textContent = enabled ? '④' : '③';
+}
+
 // ═══════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════
 function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
 function fmt(x, d=2) { return (isNaN(x)||!isFinite(x)) ? '—' : x.toFixed(d); }
 function set(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+// Falsy-zero-safe read that falls back to a computed default only when the field is blank
+function numFieldBlank(id, fallback) {
+  const raw = document.getElementById(id).value.trim();
+  if (raw === '') return fallback;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 // ═══════════════════════════════════════════
 //  CALC — with DOM update
 // ═══════════════════════════════════════════
 function calc() {
   saveCurrentLocation();
-  const Lc = v('Lc'), Lb = v('Lb');
-  set('total-len', (Lc || Lb) ? (Lc+Lb).toFixed(1)+' ft' : '—');
+  const Lc = v('Lc');
+  const Lb = segments.reduce((sum, s) => sum + (parseFloat(s.lengthFt) || 0), 0);
+  set('bond-len', Lb > 0 ? Lb.toFixed(1) + ' ft' : '—');
+  set('total-len', (Lc || Lb) ? (Lc + Lb).toFixed(1) + ' ft' : '—');
   const result = geoCalcCore();
   updateGeoDisplay(result);
-  updateSummaryDisplay(result);
+  const struct = structCalcCore();
+  updateStructDisplay(struct);
+  const group = groupCalcCore(result);
+  updateGroupDisplay(group);
+  updateSummaryDisplay(result, group, struct);
   // Store results on location
   locations[activeIdx]._RsAvg = result.RsAvg;
-  locations[activeIdx]._RsMin = result.RsMin;
-  locations[activeIdx]._RsMax = result.RsMax;
   locations[activeIdx]._RR    = result.RR;
   locations[activeIdx]._phi   = result.phi;
+  locations[activeIdx]['Lb']  = Lb > 0 ? Lb.toFixed(1) : '';
+  locations[activeIdx]._RCC   = struct.RCC;
+  locations[activeIdx]._RCU   = struct.RCU;
+  locations[activeIdx]._RTC   = struct.RTC;
+  locations[activeIdx]._RTU   = struct.RTU;
 }
 
 // ═══════════════════════════════════════════
 //  CALC — silent (no DOM update), writes to loc object
 // ═══════════════════════════════════════════
 function calcSilent(loc) {
-  const dbFt   = (parseFloat(loc['db']) || 0) / 12;
-  const Lb     = parseFloat(loc['Lb']) || 0;
-  const abAvg  = parseFloat(loc['ab-avg']) || 0;
-  const abMin  = parseFloat(loc['ab-min']) || 0;
-  const abMax  = parseFloat(loc['ab-max']) || 0;
-  const phi    = parseFloat(loc['phi-qs']) || 0.55;
-  loc._RsAvg   = (dbFt > 0 && Lb > 0 && abAvg > 0) ? Math.PI * dbFt * abAvg * Lb : 0;
-  loc._RsMin   = (dbFt > 0 && Lb > 0 && abMin > 0) ? Math.PI * dbFt * abMin * Lb : 0;
-  loc._RsMax   = (dbFt > 0 && Lb > 0 && abMax > 0) ? Math.PI * dbFt * abMax * Lb : 0;
-  loc._RR      = phi * loc._RsAvg;
-  loc._phi     = phi;
+  const dbFt = (parseFloat(loc['db']) || 0) / 12;
+  const phi  = parseFloat(loc['phi-qs']) || 0.55;
+  const type = loc._pileType || 'A';
+  const segs = loc.segments || [];
+  let RsAvg = 0, Lb = 0;
+  segs.forEach(s => {
+    const len = parseFloat(s.lengthFt) || 0;
+    Lb += len;
+    const row = AB_DATA.find(r => r.id === s.tableRowKey);
+    const vals = row ? (row.vals[type] || row.vals['A']) : null;
+    const alpha = vals ? (vals[0] + vals[1]) / 2 : 0;
+    if (dbFt > 0 && len > 0 && alpha > 0) RsAvg += Math.PI * dbFt * alpha * len;
+  });
+  loc._RsAvg = RsAvg;
+  loc._RR    = phi * RsAvg;
+  loc._phi   = phi;
+  loc['Lb']  = Lb > 0 ? Lb.toFixed(1) : '';
+
+  // Structural resistance (§10.9.3.10.2 / .10.3) — same simplified, no-plunge-length basis as structCalcCore()
+  const fc  = parseFloat(loc['struct-fc'])  || 0;
+  const Ag  = parseFloat(loc['struct-Ag'])  || 0;
+  const fy  = parseFloat(loc['struct-fy'])  || 0;
+  const Ab  = parseFloat(loc['struct-Ab'])  || 0;
+  const Ac  = parseFloat(loc['struct-Ac'])  || 0;
+  const Act = parseFloat(loc['struct-Act']) || 0;
+  const phiCC = parseFloat(loc['phi-CC']) || 0.75;
+  const phiCU = parseFloat(loc['phi-CU']) || 0.75;
+  const phiTC = parseFloat(loc['phi-TC']) || 0.80;
+  const phiTU = parseFloat(loc['phi-TU']) || 0.80;
+  const RnCC = (fc > 0 && Ag > 0 && fy > 0 && (Ab > 0 || Ac > 0)) ? 0.85 * (0.85 * fc * Ag + fy * (Ab + Ac)) : 0;
+  const RnCU = (fc > 0 && Ag > 0 && fy > 0 && Ab > 0)             ? 0.85 * (0.85 * fc * Ag + fy * Ab)        : 0;
+  const RnTC = (fy > 0 && (Ab > 0 || Act > 0))                    ? fy * (Ab + Act)                          : 0;
+  const RnTU = (fy > 0 && Ab > 0)                                 ? fy * Ab                                  : 0;
+  loc._RCC = phiCC * RnCC;
+  loc._RCU = phiCU * RnCU;
+  loc._RTC = phiTC * RnTC;
+  loc._RTU = phiTU * RnTU;
 }
 
 // ═══════════════════════════════════════════
 //  GEO CALC CORE
 // ═══════════════════════════════════════════
 function geoCalcCore() {
-  const dbIn  = v('db'), Lb = v('Lb');
-  const abMin = v('ab-min'), abAvg = v('ab-avg'), abMax = v('ab-max');
-  const phi   = v('phi-qs') || 0.55;
-  const ready = dbIn > 0 && Lb > 0 && abAvg > 0;
-  if (!ready) return { ready:false, phi };
-  const dbFt  = dbIn / 12;
+  const dbIn = v('db');
+  const phi  = v('phi-qs') || 0.55;
+  const dbFt = dbIn / 12;
+  let Lb = 0, RsAvg = 0;
+  const segResults = segments.map((s, i) => {
+    const len = parseFloat(s.lengthFt) || 0;
+    Lb += len;
+    const row = AB_DATA.find(r => r.id === s.tableRowKey);
+    const vals = row ? (row.vals[selectedType] || row.vals['A']) : null;
+    const alpha = vals ? (vals[0] + vals[1]) / 2 : 0;
+    const Rsi = (dbIn > 0 && len > 0 && alpha > 0) ? Math.PI * dbFt * alpha * len : 0;
+    RsAvg += Rsi;
+    return { num: i + 1, desc: s.desc, len, alpha, Rsi, hasRow: !!row };
+  });
+  const ready = dbIn > 0 && Lb > 0 && RsAvg > 0;
+  if (!ready) return { ready:false, phi, segResults };
   return {
     ready: true,
-    dbFt, dbIn, Lb, abMin, abAvg, abMax, phi,
-    RsMin: abMin > 0 ? Math.PI * dbFt * abMin * Lb : 0,
-    RsAvg: Math.PI * dbFt * abAvg * Lb,
-    RsMax: abMax > 0 ? Math.PI * dbFt * abMax * Lb : 0,
-    RR: phi * Math.PI * dbFt * abAvg * Lb
+    dbFt, dbIn, Lb, phi, segResults,
+    RsAvg,
+    RR: phi * RsAvg
   };
 }
 
 function updateGeoDisplay(r) {
   if (!r.ready) {
-    ['geo-line-min','geo-line-avg','geo-line-max','geo-line-rr','geo-result-rr',
-     'pill-rs-min','pill-rs-avg','pill-rs-max','pill-rr'].forEach(id => set(id,'—'));
+    set('geo-seg-lines', '<div class="calc-line sub">— (enter drill hole dia., segment length, and select an &alpha;<sub>b</sub> row for each segment)</div>');
+    ['geo-line-total','geo-line-rr','geo-result-rr','pill-rs-avg','pill-rr'].forEach(id => set(id,'—'));
     set('pill-rr-sub','kips'); return;
   }
   const d = r.dbFt.toFixed(4);
-  set('geo-line-min', r.abMin > 0
-    ? `R<sub>s,min</sub> = &pi; &times; ${d} ft &times; ${fmt(r.abMin)} ksf &times; ${fmt(r.Lb)} ft = <strong>${fmt(r.RsMin)} kips</strong>`
-    : `R<sub>s,min</sub> = — (α<sub>b</sub> min not entered)`);
-  set('geo-line-avg',
-    `R<sub>s,avg</sub> = &pi; &times; ${d} ft &times; ${fmt(r.abAvg)} ksf &times; ${fmt(r.Lb)} ft = <strong>${fmt(r.RsAvg)} kips</strong>`);
-  set('geo-line-max', r.abMax > 0
-    ? `R<sub>s,max</sub> = &pi; &times; ${d} ft &times; ${fmt(r.abMax)} ksf &times; ${fmt(r.Lb)} ft = <strong>${fmt(r.RsMax)} kips</strong>`
-    : `R<sub>s,max</sub> = — (α<sub>b</sub> max not entered)`);
+  const lines = r.segResults.map(s => {
+    if (!s.hasRow || !(s.len > 0)) {
+      return `<div class="calc-line sub">R<sub>s,${s.num}</sub> = — (segment ${s.num}: ${s.hasRow ? 'enter length' : 'select &alpha;<sub>b</sub> row'})</div>`;
+    }
+    return `<div class="calc-line sub">R<sub>s,${s.num}</sub> = &pi; &times; ${d} ft &times; ${fmt(s.alpha)} ksf &times; ${fmt(s.len)} ft = <strong>${fmt(s.Rsi)} kips</strong></div>`;
+  }).join('');
+  set('geo-seg-lines', lines);
+  set('geo-line-total', `R<sub>s</sub> = &Sigma; R<sub>s,i</sub> = <strong>${fmt(r.RsAvg)} kips</strong>`);
   set('geo-line-rr', `R<sub>R</sub> = ${fmt(r.phi,2)} &times; ${fmt(r.RsAvg)} = <strong>${fmt(r.RR)} kips</strong>`);
-  set('geo-result-rr', `<strong>R<sub>R</sub> = ${fmt(r.RR)} kips</strong> &nbsp;<span style="font-weight:400;color:var(--muted)">(&phi;<sub>qs</sub> &times; R<sub>s</sub>, &alpha;<sub>b</sub> = ${fmt(r.abAvg)} ksf)</span>`);
-  set('pill-rs-min', r.abMin > 0 ? fmt(r.RsMin,1) : '—');
+  set('geo-result-rr', `<strong>R<sub>R</sub> = ${fmt(r.RR)} kips</strong> &nbsp;<span style="font-weight:400;color:var(--muted)">(&phi;<sub>qs</sub> &times; R<sub>s</sub>)</span>`);
   set('pill-rs-avg', fmt(r.RsAvg,1));
-  set('pill-rs-max', r.abMax > 0 ? fmt(r.RsMax,1) : '—');
   set('pill-rr',     fmt(r.RR,1));
   set('pill-rr-sub', `kips &nbsp;(&phi;<sub>qs</sub> = ${fmt(r.phi,2)})`);
 }
 
-function updateSummaryDisplay(r) {
+// ═══════════════════════════════════════════
+//  STRUCTURAL CALC CORE — §10.9.3.10.2 (compression), §10.9.3.10.3 (tension)
+//  Simplified pass: no plunge-length credit (§10.9.3.10.4) — both cased and
+//  uncased sections are checked against the full factored demand.
+// ═══════════════════════════════════════════
+function structCalcCore() {
+  const fc  = v('struct-fc');
+  const Ag  = v('struct-Ag');
+  const fy  = v('struct-fy');
+  const Ab  = v('struct-Ab');
+  const Ac  = v('struct-Ac');
+  const Act = v('struct-Act');
+  const phiCC = numFieldBlank('phi-CC', 0.75);
+  const phiCU = numFieldBlank('phi-CU', 0.75);
+  const phiTC = numFieldBlank('phi-TC', 0.80);
+  const phiTU = numFieldBlank('phi-TU', 0.80);
+
+  const RnCC = (fc > 0 && Ag > 0 && fy > 0 && (Ab > 0 || Ac > 0)) ? 0.85 * (0.85 * fc * Ag + fy * (Ab + Ac)) : 0;
+  const RnCU = (fc > 0 && Ag > 0 && fy > 0 && Ab > 0)             ? 0.85 * (0.85 * fc * Ag + fy * Ab)        : 0;
+  const RnTC = (fy > 0 && (Ab > 0 || Act > 0))                    ? fy * (Ab + Act)                          : 0;
+  const RnTU = (fy > 0 && Ab > 0)                                 ? fy * Ab                                  : 0;
+
+  const ready = RnCC > 0 || RnCU > 0 || RnTC > 0 || RnTU > 0;
+  return {
+    ready, fc, Ag, fy, Ab, Ac, Act, phiCC, phiCU, phiTC, phiTU,
+    RnCC, RnCU, RnTC, RnTU,
+    RCC: phiCC * RnCC, RCU: phiCU * RnCU, RTC: phiTC * RnTC, RTU: phiTU * RnTU
+  };
+}
+
+function updateStructDisplay(s) {
+  if (!s.ready) {
+    ['struct-line-cc','struct-line-cu','struct-line-tc','struct-line-tu'].forEach(id => set(id, '—'));
+    ['pill-rcc','pill-rcu','pill-rtc','pill-rtu'].forEach(id => set(id, '—'));
+    return;
+  }
+  set('struct-line-cc',
+    `R<sub>n,CC</sub> = 0.85[0.85 &times; ${fmt(s.fc,2)} &times; ${fmt(s.Ag,2)} + ${fmt(s.fy,1)} &times; (${fmt(s.Ab,2)} + ${fmt(s.Ac,2)})] = <strong>${fmt(s.RnCC)} kips</strong> &nbsp;&rarr;&nbsp; R<sub>CC</sub> = ${fmt(s.phiCC,2)} &times; ${fmt(s.RnCC)} = <strong>${fmt(s.RCC)} kips</strong>`);
+  set('struct-line-tc',
+    `R<sub>n,TC</sub> = ${fmt(s.fy,1)} &times; (${fmt(s.Ab,2)} + ${fmt(s.Act,2)}) = <strong>${fmt(s.RnTC)} kips</strong> &nbsp;&rarr;&nbsp; R<sub>TC</sub> = ${fmt(s.phiTC,2)} &times; ${fmt(s.RnTC)} = <strong>${fmt(s.RTC)} kips</strong>`);
+  set('struct-line-cu',
+    `R<sub>n,CU</sub> = 0.85[0.85 &times; ${fmt(s.fc,2)} &times; ${fmt(s.Ag,2)} + ${fmt(s.fy,1)} &times; ${fmt(s.Ab,2)}] = <strong>${fmt(s.RnCU)} kips</strong> &nbsp;&rarr;&nbsp; R<sub>CU</sub> = ${fmt(s.phiCU,2)} &times; ${fmt(s.RnCU)} = <strong>${fmt(s.RCU)} kips</strong>`);
+  set('struct-line-tu',
+    `R<sub>n,TU</sub> = ${fmt(s.fy,1)} &times; ${fmt(s.Ab,2)} = <strong>${fmt(s.RnTU)} kips</strong> &nbsp;&rarr;&nbsp; R<sub>TU</sub> = ${fmt(s.phiTU,2)} &times; ${fmt(s.RnTU)} = <strong>${fmt(s.RTU)} kips</strong>`);
+  set('pill-rcc', fmt(s.RCC,1));
+  set('pill-rcu', fmt(s.RCU,1));
+  set('pill-rtc', fmt(s.RTC,1));
+  set('pill-rtu', fmt(s.RTU,1));
+}
+
+// ═══════════════════════════════════════════
+//  GROUP CALC CORE — §10.9.3.6 / §10.7.3.9 (compression), §10.9.3.8 / §10.7.3.11 (uplift)
+// ═══════════════════════════════════════════
+function groupCalcCore(r) {
+  const n     = v('group-n');
+  const s     = v('group-spacing');
+  const soil  = document.getElementById('group-soil').value;
+  const X = v('group-X'), Y = v('group-Y'), Z = v('group-Z');
+  const dbFt  = v('db') / 12;
+  const RsAvg = r.ready ? r.RsAvg : 0;
+  const phiQs = r.ready ? r.phi : 0.55;
+  const phiBl = 0.60;  // Block Failure (Clay) — micropile Table 10.5.5.2.5-1
+  const phiUg = 0.50;  // Group Uplift Resistance (Sand & Clay) — Table 10.5.5.2.5-1
+
+  const sdRatio = (s > 0 && dbFt > 0) ? s / dbFt : 0;
+  const ready = n > 0 && s > 0 && dbFt > 0 && RsAvg > 0;
+  if (!ready) return { ready:false, soil, sdRatio };
+
+  // ── Compression: efficiency factor η ──
+  const capContact  = document.getElementById('group-cap-contact').value;
+  const soilSurface = document.getElementById('group-soil-surface').value;
+  let eta = 1.0;
+  if (soil === 'clay' && capContact === 'no' && soilSurface === 'soft') {
+    if (sdRatio <= 2.5) eta = 0.65;
+    else if (sdRatio >= 6.0) eta = 1.0;
+    else eta = 0.65 + (1.0 - 0.65) * (sdRatio - 2.5) / (6.0 - 2.5);
+  }
+  const RRsumComp = phiQs * eta * n * RsAvg;
+
+  let Nc = null, Qg = null, RRblockComp = null;
+  const hasBlockGeom = X > 0 && Y > 0 && Z > 0;
+  if (soil === 'clay' && hasBlockGeom) {
+    const suAvg = v('group-su-avg'), suBase = v('group-su-base');
+    if (suAvg > 0 && suBase > 0) {
+      const zx = Z / X;
+      Nc = (zx <= 2.5) ? 5 * (1 + 0.2*X/Y) * (1 + 0.2*Z/X) : 7.5 * (1 + 0.2*X/Y);
+      Qg = (2*X + 2*Y) * Z * suAvg + X * Y * Nc * suBase;
+      RRblockComp = phiBl * Qg;
+    }
+  }
+  const compGoverning = (RRblockComp !== null && RRblockComp < RRsumComp) ? 'block' : 'sum';
+  const RRgroupComp = (RRblockComp !== null) ? Math.min(RRsumComp, RRblockComp) : RRsumComp;
+
+  // ── Uplift ──
+  const RRsumUp = phiUg * n * RsAvg;
+
+  let Wg = null, RRblockUp = null, upMethod = null;
+  if (hasBlockGeom) {
+    if (soil === 'clay') {
+      const suSide = v('group-su-avg');
+      const wgIn = v('group-wg-clay');
+      if (suSide > 0 && wgIn > 0) {
+        Wg = wgIn;
+        RRblockUp = phiUg * ((2*X*Z + 2*Y*Z) * suSide + Wg);
+        upMethod = 'clay';
+      }
+    } else {
+      const gamma = v('group-unit-wt');
+      if (gamma > 0) {
+        const Xtop = X + Z/2, Ytop = Y + Z/2;
+        const A0 = X*Y, Atop = Xtop*Ytop;
+        const vol = (Z/3) * (A0 + Atop + Math.sqrt(A0*Atop));
+        Wg = gamma * vol;
+        RRblockUp = phiUg * Wg;
+        upMethod = 'sand';
+      }
+    }
+  }
+  const upGoverning = (RRblockUp !== null && RRblockUp < RRsumUp) ? 'block' : 'sum';
+  const RRgroupUp = (RRblockUp !== null) ? Math.min(RRsumUp, RRblockUp) : RRsumUp;
+
+  return { ready:true, soil, n, s, dbFt, sdRatio, RsAvg, phiQs, phiBl, phiUg,
+           eta, RRsumComp, Nc, Qg, RRblockComp, compGoverning, RRgroupComp,
+           RRsumUp, Wg, RRblockUp, upMethod, upGoverning, RRgroupUp };
+}
+
+function updateGroupDisplay(g) {
+  set('group-sd-ratio', g.sdRatio > 0 ? fmt(g.sdRatio,2) : '—');
+  if (!g.ready) {
+    ['group-eta','group-line-sum-comp','group-line-nc','group-line-qg','group-line-block-comp',
+     'pill-group-sum-comp','pill-group-block-comp','pill-group-comp',
+     'group-line-sum-up','group-line-wg','group-line-block-up',
+     'pill-group-sum-up','pill-group-block-up','pill-group-up'].forEach(id => set(id,'—'));
+    return;
+  }
+  set('group-eta', fmt(g.eta,2));
+  set('group-line-sum-comp',
+    `R<sub>R</sub> = &phi;<sub>qs</sub> &times; &eta; &times; n &times; R<sub>s</sub> = ${fmt(g.phiQs,2)} &times; ${fmt(g.eta,2)} &times; ${g.n} &times; ${fmt(g.RsAvg,1)} = <strong>${fmt(g.RRsumComp,1)} kips</strong>`);
+  set('pill-group-sum-comp', fmt(g.RRsumComp,1));
+
+  if (g.Qg !== null) {
+    set('group-line-nc', `N<sub>c</sub> = <strong>${fmt(g.Nc,2)}</strong>`);
+    set('group-line-qg', `Q<sub>g</sub> = <strong>${fmt(g.Qg,1)} kips</strong> (nominal)`);
+    set('group-line-block-comp', `R<sub>R</sub> = &phi;<sub>bl</sub> &times; Q<sub>g</sub> = 0.60 &times; ${fmt(g.Qg,1)} = <strong>${fmt(g.RRblockComp,1)} kips</strong>`);
+    set('pill-group-block-comp', fmt(g.RRblockComp,1));
+  } else {
+    ['group-line-nc','group-line-qg','group-line-block-comp'].forEach(id => set(id, g.soil==='sand' ? 'N/A — sand: sum always governs' : '—'));
+    set('pill-group-block-comp', g.soil==='sand' ? 'N/A' : '—');
+  }
+  set('pill-group-comp', fmt(g.RRgroupComp,1));
+  set('pill-group-comp-sub', `kips &nbsp;(governs: ${g.compGoverning === 'block' ? 'block' : 'sum of piles'})`);
+
+  set('group-line-sum-up',
+    `R<sub>R</sub> = &phi;<sub>ug</sub> &times; n &times; R<sub>s</sub> = 0.50 &times; ${g.n} &times; ${fmt(g.RsAvg,1)} = <strong>${fmt(g.RRsumUp,1)} kips</strong>`);
+  set('pill-group-sum-up', fmt(g.RRsumUp,1));
+
+  if (g.RRblockUp !== null) {
+    set('group-line-wg', `W<sub>g</sub> = <strong>${fmt(g.Wg,1)} kips</strong>` + (g.upMethod === 'sand' ? ' (1H:4V spread frustum)' : ' (entered)'));
+    set('group-line-block-up', `R<sub>R</sub> = &phi;<sub>ug</sub> &times; R<sub>ug</sub> = <strong>${fmt(g.RRblockUp,1)} kips</strong>`);
+    set('pill-group-block-up', fmt(g.RRblockUp,1));
+  } else {
+    set('group-line-wg', '—'); set('group-line-block-up', '—'); set('pill-group-block-up', '—');
+  }
+  set('pill-group-up', fmt(g.RRgroupUp,1));
+  set('pill-group-up-sub', `kips &nbsp;(governs: ${g.upGoverning === 'block' ? 'block' : 'sum of piles'})`);
+}
+
+function updateSummaryDisplay(r, g, s) {
   const Pu = v('pu'), Tu = v('tu');
+  const PuStr = v('pu-str'), TuStr = v('tu-str');
   const RR = r.ready ? r.RR : 0;
   const phi = r.phi || 0.55;
   const RsAvg = r.ready ? r.RsAvg : 0;
 
   // Status cards
-  const updateCard = (cardId, badgeId, dcrId, rrId, demId, dem, label, demLabel) => {
+  const updateCard = (cardId, dcrId, rrId, demId, dem, label, demLabel) => {
     const card = document.getElementById(cardId);
     const badge = card.querySelector('.status-badge');
     const icon  = card.querySelector('.status-icon');
@@ -1125,13 +1916,74 @@ function updateSummaryDisplay(r) {
     if (lbl) lbl.textContent = demLabel;
   };
 
-  updateCard('sc-comp', null, 'sc-dcr-c', 'sc-rr-c', 'sc-pu', Pu, 'Compression Check', 'Bond Resistance vs. Service Compression');
-  updateCard('sc-ten',  null, 'sc-dcr-t', 'sc-rr-t', 'sc-tu', Tu, 'Tension Check',      'Bond Resistance vs. Service Tension (Uplift)');
+  updateCard('sc-comp',     'sc-dcr-c',     'sc-rr-c',     'sc-pu',     Pu,     'Compression — Service',    'Bond Resistance vs. Service Compression');
+  updateCard('sc-ten',      'sc-dcr-t',     'sc-rr-t',     'sc-tu',     Tu,     'Tension — Service',        'Bond Resistance vs. Service Tension (Uplift)');
+  updateCard('sc-comp-str', 'sc-dcr-c-str', 'sc-rr-c-str', 'sc-pu-str', PuStr,  'Compression — Strength I', 'Bond Resistance vs. Strength I Compression (reference)');
+  updateCard('sc-ten-str',  'sc-dcr-t-str', 'sc-rr-t-str', 'sc-tu-str', TuStr,  'Tension — Strength I',     'Bond Resistance vs. Strength I Tension (reference)');
+
+  // Group demand defaults (n × single-pile service reaction), overridable
+  const nPiles = v('group-n');
+  const defGroupPu = nPiles > 0 ? nPiles * Pu : 0;
+  const defGroupTu = nPiles > 0 ? nPiles * Tu : 0;
+  const groupPuEl = document.getElementById('group-pu-total');
+  const groupTuEl = document.getElementById('group-tu-total');
+  groupPuEl.placeholder = defGroupPu > 0 ? fmt(defGroupPu,1) : '—';
+  groupTuEl.placeholder = defGroupTu > 0 ? fmt(defGroupTu,1) : '—';
+  const groupPuTotal = numFieldBlank('group-pu-total', defGroupPu);
+  const groupTuTotal = numFieldBlank('group-tu-total', defGroupTu);
+  const RRgroupComp = g.ready ? g.RRgroupComp : 0;
+  const RRgroupUp   = g.ready ? g.RRgroupUp   : 0;
+
+  // Group status cards use their own RR per card (compression vs uplift differ), so build inline
+  const updateGroupCard = (cardId, dcrId, rrId, demId, dem, resVal, ready, label, demLabel) => {
+    const card = document.getElementById(cardId);
+    const badge = card.querySelector('.status-badge');
+    const icon  = card.querySelector('.status-icon');
+    const lbl   = card.querySelector('.status-label');
+    const dcrEl = document.getElementById(dcrId);
+    set(rrId, resVal > 0 ? fmt(resVal,1)+' kips' : '—');
+    set(demId, dem > 0 ? fmt(dem,1)+' kips' : '—');
+    if (!ready || resVal === 0 || dem === 0) {
+      card.className = 'status-card na';
+      badge.className = 'status-badge na';
+      icon.textContent = '○';
+      dcrEl.className = 'status-dcr na';
+      dcrEl.textContent = '—';
+    } else {
+      const dcr = resVal / dem;
+      const ok  = dcr >= 1.0;
+      card.className = 'status-card ' + (ok ? 'ok' : 'ng');
+      badge.className = 'status-badge ' + (ok ? 'ok' : 'ng');
+      icon.textContent = ok ? '✓' : '✗';
+      dcrEl.className = 'status-dcr ' + (ok ? 'ok' : 'ng');
+      dcrEl.textContent = 'CDR = ' + dcr.toFixed(3);
+    }
+    badge.innerHTML = `<span class="status-icon">${icon.textContent}</span>${label}`;
+    if (lbl) lbl.textContent = demLabel;
+  };
+  const groupApplied = document.getElementById('group-apply').value === 'yes';
+  if (groupApplied) {
+    updateGroupCard('sc-group-comp', 'sc-group-dcr-c', 'sc-group-rr-c', 'sc-group-pu', groupPuTotal, RRgroupComp, g.ready, 'Group — Compression', 'Group Resistance vs. Total Compression Demand');
+    updateGroupCard('sc-group-ten',  'sc-group-dcr-t', 'sc-group-rr-t', 'sc-group-tu', groupTuTotal, RRgroupUp,   g.ready, 'Group — Uplift',       'Group Resistance vs. Total Tension Demand');
+  }
 
   // DCR table
   const checks = [
-    { name:'Geotechnical Bond — Compression', ref:'§10.9.3.5.2', phi:fmt(phi,2), Rn:RsAvg, RR, dem:Pu, active:Pu>0 && r.ready },
-    { name:'Geotechnical Bond — Tension (Uplift)', ref:'§10.9.3.5.2', phi:fmt(phi,2), Rn:RsAvg, RR, dem:Tu, active:Tu>0 && r.ready },  ];
+    { name:'Geotechnical Bond — Compression (Service)', ref:'§10.9.3.5.2', phi:fmt(phi,2), Rn:RsAvg, RR, dem:Pu, active:Pu>0 && r.ready },
+    { name:'Geotechnical Bond — Tension, Uplift (Service)', ref:'§10.9.3.5.2', phi:fmt(phi,2), Rn:RsAvg, RR, dem:Tu, active:Tu>0 && r.ready },
+    { name:'Geotechnical Bond — Compression (Strength I, ref.)', ref:'§10.9.3.5.2', phi:fmt(phi,2), Rn:RsAvg, RR, dem:PuStr, active:PuStr>0 && r.ready },
+    { name:'Geotechnical Bond — Tension, Uplift (Strength I, ref.)', ref:'§10.9.3.5.2', phi:fmt(phi,2), Rn:RsAvg, RR, dem:TuStr, active:TuStr>0 && r.ready },
+    { name:'Structural — Compression, Cased', ref:'§10.9.3.10.2a', phi:fmt(s.phiCC,2), Rn:s.RnCC, RR:s.RCC, dem:PuStr, active:PuStr>0 && s.ready && s.RnCC>0 },
+    { name:'Structural — Compression, Uncased', ref:'§10.9.3.10.2b', phi:fmt(s.phiCU,2), Rn:s.RnCU, RR:s.RCU, dem:PuStr, active:PuStr>0 && s.ready && s.RnCU>0 },
+    { name:'Structural — Tension, Cased', ref:'§10.9.3.10.3a', phi:fmt(s.phiTC,2), Rn:s.RnTC, RR:s.RTC, dem:TuStr, active:TuStr>0 && s.ready && s.RnTC>0 },
+    { name:'Structural — Tension, Uncased', ref:'§10.9.3.10.3b', phi:fmt(s.phiTU,2), Rn:s.RnTU, RR:s.RTU, dem:TuStr, active:TuStr>0 && s.ready && s.RnTU>0 },
+  ];
+  if (groupApplied) {
+    checks.push(
+      { name:'Micropile Group — Compression ('+(g.ready?g.compGoverning+' governs':'—')+')', ref:'§10.7.3.9', phi:'—', Rn:0, RR:RRgroupComp, dem:groupPuTotal, active:groupPuTotal>0 && g.ready },
+      { name:'Micropile Group — Uplift ('+(g.ready?g.upGoverning+' governs':'—')+')', ref:'§10.7.3.11', phi:'—', Rn:0, RR:RRgroupUp, dem:groupTuTotal, active:groupTuTotal>0 && g.ready }
+    );
+  }
   const tbody = document.getElementById('dcr-tbody');
   tbody.innerHTML = '';
   checks.forEach(c => {
@@ -1169,7 +2021,6 @@ function doPrint(mode) {
     if (!isSumTab) saveCurrentLocation();
     const savedIdx  = activeIdx;
     const savedType = selectedType;
-    const savedSoil = selectedSoilId;
     const wasSumTab = isSumTab;
 
     const mainEl    = document.getElementById('loc-main-content');
@@ -1199,7 +2050,11 @@ function doPrint(mode) {
       loadLocation(i);
       const r = geoCalcCore();
       updateGeoDisplay(r);
-      updateSummaryDisplay(r);
+      const s = structCalcCore();
+      updateStructDisplay(s);
+      const g = groupCalcCore(r);
+      updateGroupDisplay(g);
+      updateSummaryDisplay(r, g, s);
       const sec = document.createElement('div');
       sec.className = 'print-loc-section';        // break-before:page on each
       const lbl = document.createElement('div');
@@ -1215,15 +2070,8 @@ function doPrint(mode) {
 
     // ── Restore state ────────────────────────────────────────────
     activeIdx = savedIdx;
-    setTypeInternal(savedType);
-    if (savedSoil) {
-      selectedSoilId = savedSoil;
-      const tr = document.getElementById('row-' + savedSoil);
-      if (tr) tr.classList.add('sel-row');
-    } else {
-      selectedSoilId = null;
-    }
     loadLocation(savedIdx);
+    setTypeInternal(savedType);
     calc();
 
     // Restore display state (was on Summary tab or location tab)
@@ -1254,7 +2102,7 @@ function saveJSON() {
   const proj = {};
   ['proj-name','proj-num','calc-by','calc-date','chk-by','chk-date']
     .forEach(id => { const el = document.getElementById(id); if(el) proj[id] = el.value; });
-  const data = { tool:'micropile-capacity-calculator', version:'2.0',
+  const data = { tool:'micropile-capacity-calculator', version:'2.1',
                  savedAt:new Date().toISOString(), project:proj,
                  locations, activeIdx };
   const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
@@ -1286,7 +2134,7 @@ function loadJSON() {
           activeIdx = data.activeIdx || 0;
         }
         isSumTab = false;
-        renderTabs();
+        sortLocations();
         document.getElementById('loc-main-content').style.display = '';
         document.getElementById('summary-view').style.display = 'none';
         loadLocation(activeIdx);
@@ -1302,6 +2150,15 @@ function loadJSON() {
 //  START
 // ═══════════════════════════════════════════
 init();
+</script>
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
 </script>
 </body>
 </html>

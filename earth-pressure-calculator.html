@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Earth Pressure Coefficient Calculator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- P1-4: self-hosted IBM Plex (was Google Fonts CDN) -->
 <style>
   :root {
     --navy:#0c1f35;--navy2:#152d4a;--blue:#1d5fa8;--blue2:#2471c9;
@@ -18,13 +18,12 @@
   body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);line-height:1.5}
 
   .header{background:var(--navy);color:#fff;border-bottom:3px solid var(--blue2)}
+  .breadcrumb{padding:6px 24px;font-size:11px;font-family:var(--mono);color:var(--muted);background:#fff;border-bottom:1px solid var(--border)}.breadcrumb a{color:var(--blue2);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
   .header-inner{max-width:1160px;margin:0 auto;padding:18px 24px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
   .header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
   .header h1 span{color:#6db3f5}
   .header-sub{font-size:10.5px;color:#7a9fc0;margin-top:3px;font-family:var(--mono)}
   .header-tag{font-family:var(--mono);font-size:10px;color:#5a8ab0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:3px 8px;border-radius:2px;white-space:nowrap;align-self:flex-start;margin-top:4px}
-  .hdr-home{font-family:var(--mono);font-size:11px;color:#7a9fc0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);padding:4px 11px;border-radius:3px;cursor:pointer;white-space:nowrap;transition:background .13s}
-  .hdr-home:hover{background:rgba(255,255,255,.16);color:#b8d4ef}
 
   .container{max-width:1160px;margin:0 auto;padding:20px 20px 60px}
 
@@ -142,10 +141,12 @@
       <div class="header-sub">k&#8320; At-Rest &nbsp;&middot;&nbsp; k&#8336; Active (Rankine / Coulomb) &nbsp;&middot;&nbsp; k&#8346; Passive (NAVFAC / Kerisel &amp; Absi) &nbsp;&middot;&nbsp; &#947;eq Equivalent Fluid</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <button class="hdr-home" onclick="location.href='index.html'">⌂ Home</button>
       <div class="header-tag">AASHTO LRFD 9th Ed. &nbsp;&middot;&nbsp; &sect;3.11.5</div>
     </div>
   </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">← Geotech Tools</a> &nbsp;/&nbsp; Earth Pressure Calculator
 </div>
 
 <div class="container">
@@ -1190,6 +1191,15 @@ function init() {
   calcNs();
 }
 init();
+</script>
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
 </script>
 </body>
 </html>

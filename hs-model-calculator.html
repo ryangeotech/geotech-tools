@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HS Model Parameter Calculator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- P1-4: self-hosted IBM Plex (was Google Fonts CDN) -->
 <style>
 :root {
   --navy:#0c1f35;--navy2:#152d4a;--blue:#1d5fa8;--blue2:#2471c9;
@@ -513,7 +513,7 @@ footer{max-width:1200px;margin:0 auto;padding:16px 24px 36px;display:flex;align-
   <div class="footer-right">internal use only</div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="vendor/chart.umd.js"></script><!-- P1-4: vendored (was cdnjs) -->
 <script>
 /* ──────────────────────────── HELPERS ──────────────────────────── */
 const $ = id => document.getElementById(id);
@@ -943,6 +943,15 @@ $('ss-sig3').addEventListener('input', function() { sync3from2(); calc(); });
 
 /* ──────────────────────────── INIT ──────────────────────────── */
 calc();
+</script>
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
 </script>
 </body>
 </html>
