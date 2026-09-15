@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#1b4f8a">
 <title>FieldLog v2</title>
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<!-- P1-4: fonts self-hosted (no runtime CDN dependency) -->
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root {
   --bg:        #f0f2f5;
@@ -52,12 +52,36 @@ header {
 .logo-sub { font-size: 11px; opacity: .7; font-family: var(--mono); letter-spacing: .5px; margin-top: 1px; }
 .header-right { display:flex; gap:8px; align-items:center; }
 
+/* ── HEADER DROPDOWN MENUS ── */
+.hdr-menu { position:relative; }
+.hdr-menu-list {
+  position:absolute; top:calc(100% + 6px); right:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; box-shadow:var(--shadow-md);
+  min-width:170px; z-index:210;
+  overflow:hidden; display:none;
+}
+.hdr-menu.open .hdr-menu-list { display:block; }
+.hdr-menu-item {
+  display:block; width:100%; padding:11px 14px;
+  font-size:12px; font-family:var(--cond); font-weight:600;
+  letter-spacing:.8px; text-transform:uppercase;
+  color:var(--text2); text-align:left;
+  background:none; border:none; cursor:pointer;
+  white-space:nowrap;
+}
+.hdr-menu-item:hover { background:var(--accent-lt); color:var(--accent); }
+.hdr-menu-item + .hdr-menu-item { border-top:1px solid var(--border); }
+.breadcrumb { padding: 6px 14px; font-size: 11px; font-family: var(--mono); color: var(--muted); background: var(--surface); border-bottom: 1px solid var(--border); }
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
 /* ── NAV TABS ── */
 .tabs {
   display: flex; background: var(--surface);
   border-bottom: 2px solid var(--border);
   overflow-x: auto; scrollbar-width: none;
-  position: sticky; top: 50px; z-index: 190;
+  position: sticky; top: 77px; z-index: 190;
   box-shadow: var(--shadow);
 }
 .tabs::-webkit-scrollbar { display:none; }
@@ -361,11 +385,26 @@ header {
   </div>
   <div class="header-right">
     <button class="btn btn-ghost btn-sm" onclick="switchTabById('tab-boring')" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3)">+ Boring</button>
-    <button class="btn btn-ghost btn-sm" onclick="exportGINT()" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3)">gINT</button>
-    <button class="btn btn-ghost btn-sm" onclick="saveJSON()" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3)">&#8659; JSON</button>
-    <button class="btn btn-ghost btn-sm" onclick="loadJSON()" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3)">&#8657; JSON</button>
+    <div class="hdr-menu" id="menu-gint">
+      <button class="btn btn-ghost btn-sm" onclick="toggleHdrMenu('menu-gint')" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3)">gINT ▾</button>
+      <div class="hdr-menu-list">
+        <button class="hdr-menu-item" onclick="closeHdrMenus();exportGINT()">&#8659; Export gINT</button>
+        <button class="hdr-menu-item" onclick="closeHdrMenus();importGINT()">&#8657; Import gINT</button>
+      </div>
+    </div>
+    <div class="hdr-menu" id="menu-json">
+      <button class="btn btn-ghost btn-sm" onclick="toggleHdrMenu('menu-json')" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3)">JSON ▾</button>
+      <div class="hdr-menu-list">
+        <button class="hdr-menu-item" onclick="closeHdrMenus();saveJSON()">&#8659; Save JSON</button>
+        <button class="hdr-menu-item" onclick="closeHdrMenus();loadJSON()">&#8657; Load JSON</button>
+      </div>
+    </div>
   </div>
 </header>
+
+<div class="breadcrumb">
+  <a href="index.html">← Geotech Tools</a> &nbsp;/&nbsp; FieldLog v2
+</div>
 
 <div class="tabs">
   <div class="tab active" data-section="tab-project" onclick="switchTab(this)">Project</div>
@@ -395,16 +434,16 @@ header {
     <div class="card-title">Project Information</div>
     <div class="field">
       <label>Project Name</label>
-      <input type="text" id="proj-name" placeholder="e.g. Fishing Creek Dam Safety Study" oninput="updateHdr()">
+      <input type="text" id="proj-name" placeholder="Project Name" oninput="updateHdr()">
     </div>
     <div class="grid-2">
       <div class="field">
         <label>Commission No.</label>
-        <input type="text" id="proj-num" placeholder="e.g. 23-0142">
+        <input type="text" id="proj-num" placeholder="e.g. XXXXX.XXX">
       </div>
       <div class="field">
         <label>Client</label>
-        <input type="text" id="proj-client" placeholder="e.g. MES">
+        <input type="text" id="proj-client" placeholder="Client Name">
       </div>
     </div>
     <div class="grid-2">
@@ -419,7 +458,7 @@ header {
       </div>
       <div class="field">
         <label>County / Locale</label>
-        <input type="text" id="proj-county" placeholder="e.g. Frederick">
+        <input type="text" id="proj-county" placeholder="County, Locale, or Jurisdiction">
       </div>
     </div>
     <div class="field">
@@ -503,6 +542,11 @@ header {
     <button class="btn btn-ghost" style="flex:1" onclick="loadJSON()">&#8657; Load JSON</button>
   </div>
   <div id="saved-list"></div>
+  <!-- P3-4: field devices may be shared or lost — give users a one-tap wipe -->
+  <div style="margin-top:18px;text-align:center">
+    <button class="btn btn-danger btn-sm" onclick="clearDeviceData()">Clear This Device</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Removes all FieldLog data stored in this browser (saved logs, autosave, initials). Exported files are not affected.</div>
+  </div>
 </div>
 
 <!-- (boring modal removed - add boring is now inline in Boring Info tab) -->
@@ -532,25 +576,179 @@ header {
 <!-- ════════════════════════════════════════════ -->
 <!--  JAVASCRIPT                                  -->
 <!-- ════════════════════════════════════════════ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- SheetJS — loaded from cdnjs (vendor/xlsx.full.min.js not tracked in git repo) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window._xlsxMissing=true"></script>
 <script>
 // ── DATA MODEL ───────────────────────────────────────────────────
 let state = {
+  schemaVersion: 2,   // P2-3: bump FIELDLOG_SCHEMA_VERSION below when the data model changes
   project: { name:'', num:'', client:'', state:'', county:'', units:'E', sptIntervals:'3' },
   borings: [],        // array of boring objects
   activeBoring: null  // index into borings
 };
-let savedLogs = JSON.parse(localStorage.getItem('fieldlog_v2_saves') || '[]');
+// HS-2: never trust localStorage blindly — guard the parse
+let savedLogs = [];
+try {
+  const _sl = JSON.parse(localStorage.getItem('fieldlog_v2_saves') || '[]');
+  if (Array.isArray(_sl)) savedLogs = _sl;
+} catch (e) { console.warn('FieldLog: saved-logs store unreadable, starting empty', e); }
 let nextId = 1; // for unique entry IDs
+
+// ═════════════════════════════════════════════════════════════════
+//  SECURITY & DATA-INTEGRITY HELPERS
+//  (code review items HS-1, HS-2, HS-3, P2-3, P3-3, P3-4)
+// ═════════════════════════════════════════════════════════════════
+
+// HS-1/HS-2: HTML-escape EVERY user-supplied value interpolated into a
+// template literal. Covers text nodes and double-quoted attributes.
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// HS-1/HS-3: boring IDs are validated at write time, not just on display.
+// Allowed: letters, digits, space, - _ . # ( ) / ' — max 50 chars.
+const BORING_ID_RE = /^[A-Za-z0-9][A-Za-z0-9 ._#()'\/-]{0,49}$/;
+function validBoringId(id) {
+  return typeof id === 'string' && BORING_ID_RE.test(id);
+}
+
+// ── P3-3: lightweight audit identity (until Entra ID auth, P1-1) ──
+function getUserInitials() {
+  try { return localStorage.getItem('geotools_user_initials') || ''; } catch (e) { return ''; }
+}
+function ensureUserInitials() {
+  let ini = getUserInitials();
+  if (!ini) {
+    ini = (prompt('Enter your initials (recorded with log data for QC traceability):') || '')
+            .trim().replace(/[^A-Za-z.]/g, '').slice(0, 6);
+    if (ini) { try { localStorage.setItem('geotools_user_initials', ini); } catch (e) {} }
+  }
+  return ini;
+}
+function touchAudit(obj) {
+  if (!obj) return;
+  obj.modifiedBy = getUserInitials();
+  obj.modifiedAt = new Date().toISOString();
+}
+
+// ── P3-4: clear all FieldLog data from this device ────────────────
+function clearDeviceData() {
+  if (!confirm('Clear ALL FieldLog data stored on this device?\n\nThis removes saved logs, the autosave snapshot, and your stored initials. Exported JSON/XLSX files are NOT affected.\n\nThis cannot be undone.')) return;
+  try {
+    localStorage.removeItem('fieldlog_v2_saves');
+    localStorage.removeItem('fieldlog_v2_autosave');
+    localStorage.removeItem('geotools_user_initials');
+  } catch (e) {}
+  location.reload();
+}
+
+// ═════════════════════════════════════════════════════════════════
+//  P2-3 + HS-2: SCHEMA VERSIONING & IMPORT VALIDATION
+//  Every saved object carries schemaVersion. Imported JSON and
+//  localStorage restores are whitelist-rebuilt: only known fields with
+//  coerced types survive; anything else (including injected markup in
+//  unexpected keys) is dropped. Free-text fields are kept verbatim but
+//  are ALWAYS rendered through esc().
+// ═════════════════════════════════════════════════════════════════
+const FIELDLOG_SCHEMA_VERSION = 2;
+
+function cleanStr(v, max = 4000) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').slice(0, max);
+}
+function cleanBool(v) { return v === true || v === 'true'; }
+function cleanNum(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+function cleanEnum(v, allowed, fallback = '') {
+  return allowed.includes(v) ? v : fallback;
+}
+function sanitizeRow(raw, stringKeys, extra) {
+  const out = { id: cleanNum(raw && raw.id, 0) };
+  stringKeys.forEach(k => { out[k] = cleanStr(raw ? raw[k] : ''); });
+  if (extra) Object.assign(out, extra(raw || {}));
+  return out;
+}
+
+// Upgrades any older save shape to the current schema, then rebuilds it
+// through the whitelist. Throws (with a user-readable message) on files
+// that cannot be safely interpreted. HS-2 test case: a string field
+// containing <img src=x onerror=alert(1)> survives as data but renders
+// as literal text because every display site escapes.
+function migrateAndSanitizeState(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error('Snapshot is not a valid FieldLog state object.');
+  }
+  const ver = cleanNum(raw.schemaVersion, 1); // pre-versioning saves = v1
+  if (ver > FIELDLOG_SCHEMA_VERSION) {
+    throw new Error('This file was saved by a newer version of FieldLog (schema v' + ver + '). Update the app, then try again.');
+  }
+  // v1 → v2 migration: boringNotes introduced; nothing else changed shape.
+  // Future migrations: add steps here, in order, before the rebuild below.
+  const p = raw.project || {};
+  const s = {
+    schemaVersion: FIELDLOG_SCHEMA_VERSION,
+    project: {
+      name: cleanStr(p.name, 200), num: cleanStr(p.num, 100), client: cleanStr(p.client, 200),
+      state: cleanStr(p.state, 100), county: cleanStr(p.county, 100), units: cleanStr(p.units, 50)
+    },
+    borings: [],
+    activeBoring: null
+  };
+  (Array.isArray(raw.borings) ? raw.borings : []).forEach(rb => {
+    if (!rb || typeof rb !== 'object') return;
+    let bid = cleanStr(rb.id, 50).trim();
+    if (!validBoringId(bid)) {
+      // Strip disallowed characters rather than dropping the boring (preserve field data)
+      bid = bid.replace(/[^A-Za-z0-9 ._#()'\/-]/g, '').slice(0, 50).trim() || ('B-' + (s.borings.length + 1));
+    }
+    const b = newBoring(bid);
+    ['loc','start','complete','holeDepth','inspector','co','driller','rig','method','hammer',
+     'samplerID','hamCal','coreMethod','coreDia','lat','lon','north','east','coordSys','elev',
+     'boringNotes','createdBy','createdAt','modifiedBy','modifiedAt']
+      .forEach(k => { if (rb[k] !== undefined) b[k] = cleanStr(rb[k]); });
+    b.hamWt   = cleanNum(rb.hamWt, 140);
+    b.hamDrop = cleanNum(rb.hamDrop, 30);
+    b.completionStatus = cleanEnum(rb.completionStatus, ['', 'Completed', 'Terminated']);
+    b.sptIntervals     = cleanEnum(rb.sptIntervals, ['3', '4'], '3');
+    b.spt = (Array.isArray(rb.spt) ? rb.spt : []).map(r => sanitizeRow(r,
+      ['num','topDepth','length','intervalLen','b1','b2','b3','b4','recovery','notes'],
+      r2 => ({ type: cleanEnum(r2.type, ['S','T','B','G'], 'S'), refusal: cleanBool(r2.refusal) })));
+    b.lith = (Array.isArray(rb.lith) ? rb.lith : []).map(l => sanitizeRow(l,
+      ['stratum','topDepth','botDepth','uscs','aashto','moisture','densityConsist','color',
+       'c1desc','c1part','c2pct','c2desc','c2part','c3pct','c3desc','c3part','other'],
+      l2 => ({ linked: cleanBool(l2.linked), lineType: cleanEnum(l2.lineType, ['Dash','Solid','None'], 'Dash') })));
+    b.gw = (Array.isArray(rb.gw) ? rb.gw : []).map(g => sanitizeRow(g,
+      ['readingType','customType','depth','cave','timestamp']));
+    b.rock = (Array.isArray(rb.rock) ? rb.rock : []).map(r => sanitizeRow(r,
+      ['num','topDepth','runLength','color','rockType','recoveryLen','rqdLen',
+       'hardness','weathering','fracFreq','jointSpacing','notes']));
+    b.notes = (Array.isArray(rb.notes) ? rb.notes : []).map(n => sanitizeRow(n,
+      ['depth','text','timestamp']));
+    s.borings.push(b);
+  });
+  const aIdx = cleanNum(raw.activeBoring, -1);
+  s.activeBoring = (aIdx >= 0 && aIdx < s.borings.length) ? aIdx : (s.borings.length ? 0 : null);
+  return s;
+}
 
 function newBoring(id) {
   return {
     id, loc:'', start:'', complete:'', completionStatus:'', holeDepth:'',
     inspector:'', co:'', driller:'', rig:'', method:'', hammer:'', samplerID:'1.375',
     hamWt:140, hamDrop:30, hamCal:'', coreMethod:'', coreDia:'',
-    lat:'', lon:'', north:'', east:'', coordSys:'MD State Plane', elev:'', notes:'',
+    lat:'', lon:'', north:'', east:'', coordSys:'MD State Plane', elev:'',
+    boringNotes:'',  // P2-2: explicit init so exports never serialize undefined
     sptIntervals:'3',
+    // P3-3: audit trail (initials until Entra ID auth is wired up per P1-1)
+    createdBy: getUserInitials(), createdAt: new Date().toISOString(),
+    modifiedBy: getUserInitials(), modifiedAt: new Date().toISOString(),
     spt:[], lith:[], gw:[], rock:[], notes:[]
+    // NOTE: a duplicate scalar `notes:''` key was removed here — it was dead
+    // (silently overwritten by the notes array) and shadowed boringNotes.
   };
 }
 
@@ -589,8 +787,8 @@ const AASHTO_OPTS = ['','A-1-a','A-1-b','A-2-4','A-2-5','A-2-6','A-2-7','A-3',
                      'A-4','A-5','A-6','A-7-5','A-7-6'];
 
 const MOISTURE_OPTS  = ['','Dry','Moist','Wet','Very Wet'];
-const DENSITY_COARSE = ['','Very Loose','Loose','Medium Dense','Dense','Very Dense','Refusal'];
-const CONSIST_FINE   = ['','Very Soft','Soft','Medium Stiff','Stiff','Very Stiff','Hard'];
+const DENSITY_COARSE = ['','Very Loose (0-4 bpf)','Loose (5-10 bpf)','Medium Dense (11-30 bpf)','Dense (31-50 bpf)','Very Dense (50+ bpf)'];
+const CONSIST_FINE   = ['','Very Soft (0-2 bpf)','Soft (3-4 bpf)','Medium Stiff (5-8 bpf)','Stiff (9-15 bpf)','Very Stiff (16-30 bpf)','Hard (30+ bpf)'];
 
 const COARSE_MODS = ['','Coarse','Coarse to Fine','Coarse to Medium','Medium','Medium to Fine','Fine',
                      'Coarse to Fine Sub-Rounded','Coarse to Fine Sub-Angular','Fine to Coarse'];
@@ -607,8 +805,8 @@ function buildDescSelect(sel) {
   h += '</optgroup>';
   return h;
 }
-const PARTICLES   = ['','Gravel','Sand','Silt','Clay','Gravel-Sized Rock Fragments',
-                     'Cobbles','Organics','Root Fragments'];
+const PARTICLES   = ['','Gravel','Sand','Silt','Clay','Boulders',
+                     'Cobbles','Angular Gravel','Subangular Gravel','Subrounded Gravel','Rounded Gravel'];
 const PROPS       = ['','And (36-50%)','Some (21-35%)','Little (11-20%)','Trace (1-10%)'];
 
 // ── ROCK CORING LOOKUPS ──────────────────────────────────────────
@@ -647,9 +845,11 @@ function requireBoring() {
 
 // ── BORING MANAGEMENT ────────────────────────────────────────────
 function promptAddBoring() {
+  ensureUserInitials(); // P3-3: capture audit identity on first data entry
   const id = prompt('Enter Boring ID (e.g. B-01):');
   if (!id || !id.trim()) return;
   const trimmed = id.trim();
+  if (!validBoringId(trimmed)) { showToast("Invalid Boring ID — letters, numbers, spaces, and - _ . # ( ) / ' only (max 50)",'warn'); return; }
   if (state.borings.find(b => b.id === trimmed)) { showToast('ID already exists','warn'); return; }
   state.borings.push(newBoring(trimmed));
   state.activeBoring = state.borings.length - 1;
@@ -675,6 +875,7 @@ function promptCopyBoring() {
   const newId = prompt('Enter new Boring ID:');
   if (!newId || !newId.trim()) return;
   const trimmed = newId.trim();
+  if (!validBoringId(trimmed)) { showToast("Invalid Boring ID — letters, numbers, spaces, and - _ . # ( ) / ' only (max 50)",'warn'); return; }
   if (state.borings.find(b => b.id === trimmed)) { showToast('ID "' + trimmed + '" already exists', 'warn'); return; }
   const nb = newBoring(trimmed);
   // Copy Inspector, Coordinate System, and all Drill Setup fields
@@ -777,7 +978,7 @@ function renderBoringCards() {
     el.innerHTML = `<div class="empty"><div class="empty-icon">📍</div><div class="empty-text">No borings yet — tap Add Boring</div></div>`;
     return;
   }
-  el.innerHTML = state.borings.map(b => {
+  el.innerHTML = state.borings.map((b, i) => {
     const uid = b.id.replace(/[^a-zA-Z0-9]/g,'_');
     const pfx = `bf-${uid}-`;
     const isActive = state.activeBoring !== null && state.borings[state.activeBoring]?.id === b.id;
@@ -785,34 +986,34 @@ function renderBoringCards() {
     const compIco = b.completionStatus==='Completed'?'✓':b.completionStatus==='Terminated'?'⚠':'';
     return `
     <div class="entry-card${isActive?' expanded':''}" id="bc-${uid}" style="${isActive?'border-left-color:var(--accent)':''}">
-      <div class="entry-header" onclick="toggleBorCard('${uid}','${b.id}')">
+      <div class="entry-header" onclick="toggleBorCard('${uid}',${i})">
         <div>
-          <div class="entry-depth">${b.id}</div>
-          <div class="entry-meta">${b.loc||'No location'} · ${b.holeDepth?b.holeDepth+' ft':'depth TBD'} ${b.completionStatus?'· '+b.completionStatus:''}</div>
+          <div class="entry-depth">${esc(b.id)}</div>
+          <div class="entry-meta">${esc(b.loc)||'No location'} · ${b.holeDepth?esc(b.holeDepth)+' ft':'depth TBD'} ${b.completionStatus?'· '+esc(b.completionStatus):''}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          ${b.completionStatus ? `<span class="pill ${compCls==='completed'?'pill-green':'pill-red'}">${compIco} ${b.completionStatus}</span>` : ''}
+          ${b.completionStatus ? `<span class="pill ${compCls==='completed'?'pill-green':'pill-red'}">${compIco} ${esc(b.completionStatus)}</span>` : ''}
           <span class="entry-chevron">›</span>
         </div>
       </div>
       <div class="entry-body">
 
         <div id="cb-badge-${uid}" class="completion-badge ${compCls}" style="display:${b.completionStatus?'flex':'none'};margin-bottom:10px">
-          ${compIco} ${b.completionStatus||''}
+          ${compIco} ${esc(b.completionStatus)}
         </div>
 
         <div class="card-title">Identification</div>
         <div class="grid-2">
           <div class="field"><label>Boring No. (PointID)</label>
-            <input type="text" id="${pfx}id" value="${b.id}" placeholder="e.g. B-01"></div>
+            <input type="text" id="${pfx}id" value="${esc(b.id)}" placeholder="e.g. B-01"></div>
           <div class="field"><label>Location</label>
-            <input type="text" id="${pfx}loc" value="${b.loc}" placeholder="e.g. Crest of Dam"></div>
+            <input type="text" id="${pfx}loc" value="${esc(b.loc)}" placeholder="e.g. Crest of Dam"></div>
         </div>
         <div class="grid-2">
           <div class="field"><label>Start Date</label>
-            <input type="date" id="${pfx}start" value="${b.start}"></div>
+            <input type="date" id="${pfx}start" value="${esc(b.start)}"></div>
           <div class="field"><label>Inspector</label>
-            <input type="text" id="${pfx}inspector" value="${b.inspector}" placeholder="Initials"></div>
+            <input type="text" id="${pfx}inspector" value="${esc(b.inspector)}" placeholder="Initials"></div>
         </div>
 
         <div class="card-title" style="margin-top:12px">Coordinates &amp; Elevation</div>
@@ -824,27 +1025,27 @@ function renderBoringCards() {
           </select></div>
         <div class="grid-2">
           <div class="field"><label>Northing (Y)</label>
-            <input type="number" id="${pfx}north" value="${b.north}" step="0.01" placeholder="—"></div>
+            <input type="number" id="${pfx}north" value="${esc(b.north)}" step="0.01" placeholder="—"></div>
           <div class="field"><label>Easting (X)</label>
-            <input type="number" id="${pfx}east" value="${b.east}" step="0.01" placeholder="—"></div>
+            <input type="number" id="${pfx}east" value="${esc(b.east)}" step="0.01" placeholder="—"></div>
         </div>
         <div class="grid-2">
           <div class="field"><label>Latitude</label>
-            <input type="number" id="${pfx}lat" value="${b.lat}" step="0.000001" placeholder="e.g. 39.5254"></div>
+            <input type="number" id="${pfx}lat" value="${esc(b.lat)}" step="0.000001" placeholder="e.g. 39.5254"></div>
           <div class="field"><label>Longitude</label>
-            <input type="number" id="${pfx}lon" value="${b.lon}" step="0.000001" placeholder="e.g. -77.4631"></div>
+            <input type="number" id="${pfx}lon" value="${esc(b.lon)}" step="0.000001" placeholder="e.g. -77.4631"></div>
         </div>
         <div class="field"><label>Surface Elevation (ft)</label>
-          <input type="number" id="${pfx}elev" value="${b.elev}" step="0.1" placeholder="e.g. 728"></div>
+          <input type="number" id="${pfx}elev" value="${esc(b.elev)}" step="0.1" placeholder="e.g. 728"></div>
 
         <div class="card-title" style="margin-top:12px">Drill Setup</div>
         <div class="field"><label>Drilling Company</label>
-          <input type="text" id="${pfx}co" value="${b.co}" placeholder="e.g. SaLUT"></div>
+          <input type="text" id="${pfx}co" value="${esc(b.co)}" placeholder="Drilling Contractor"></div>
         <div class="grid-2">
           <div class="field"><label>Driller</label>
-            <input type="text" id="${pfx}driller" value="${b.driller}" placeholder="Name or initials"></div>
+            <input type="text" id="${pfx}driller" value="${esc(b.driller)}" placeholder="Name or initials"></div>
           <div class="field"><label>Rig</label>
-            <input type="text" id="${pfx}rig" value="${b.rig}" placeholder="e.g. CME 45"></div>
+            <input type="text" id="${pfx}rig" value="${esc(b.rig)}" placeholder="e.g. CME 45"></div>
         </div>
         <div class="grid-2">
           <div class="field"><label>Advancement Method</label>
@@ -874,11 +1075,11 @@ function renderBoringCards() {
         </div>
         <div class="grid-3">
           <div class="field"><label>Hammer Wt. (lbs)</label>
-            <input type="number" id="${pfx}ham-wt" value="${b.hamWt||140}" step="1"></div>
+            <input type="number" id="${pfx}ham-wt" value="${esc(b.hamWt||140)}" step="1"></div>
           <div class="field"><label>Drop (in)</label>
-            <input type="number" id="${pfx}ham-drop" value="${b.hamDrop||30}" step="1"></div>
+            <input type="number" id="${pfx}ham-drop" value="${esc(b.hamDrop||30)}" step="1"></div>
           <div class="field"><label>Cal. Date</label>
-            <input type="date" id="${pfx}ham-cal" value="${b.hamCal}"></div>
+            <input type="date" id="${pfx}ham-cal" value="${esc(b.hamCal)}"></div>
         </div>
         <div class="field"><label>Rock Coring Method</label>
           <select id="${pfx}core-method">
@@ -894,22 +1095,22 @@ function renderBoringCards() {
 
         <div class="card-title" style="margin-top:12px">Completion / Termination</div>
         <div class="grid-2" style="margin-bottom:10px">
-          <button class="btn btn-green btn-full" onclick="setCompletionInline('${b.id}','Completed')">✓ Completed</button>
-          <button class="btn btn-danger btn-full" onclick="setCompletionInline('${b.id}','Terminated')">⚠ Terminated</button>
+          <button class="btn btn-green btn-full" onclick="setCompletionInline(state.borings[${i}].id,'Completed')">✓ Completed</button>
+          <button class="btn btn-danger btn-full" onclick="setCompletionInline(state.borings[${i}].id,'Terminated')">⚠ Terminated</button>
         </div>
         <div class="grid-2">
           <div class="field"><label>End Depth (ft)</label>
-            <input type="number" id="${pfx}hole-depth" value="${b.holeDepth}" step="0.5" placeholder="e.g. 72"></div>
+            <input type="number" id="${pfx}hole-depth" value="${esc(b.holeDepth)}" step="0.5" placeholder="e.g. 72"></div>
           <div class="field"><label>Completion Date</label>
-            <input type="date" id="${pfx}complete-date" value="${b.complete}"></div>
+            <input type="date" id="${pfx}complete-date" value="${esc(b.complete)}"></div>
         </div>
         <div class="field"><label>Boring Notes</label>
-          <textarea id="${pfx}boring-notes" placeholder="General observations, installation, grout details…">${b.boringNotes||''}</textarea></div>
+          <textarea id="${pfx}boring-notes" placeholder="General observations, installation, grout details…">${esc(b.boringNotes)}</textarea></div>
 
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-primary" style="flex:1" onclick="saveBoring('${b.id}')">Save Boring</button>
-          <button class="btn btn-outline" style="flex:1" onclick="activateBoring('${b.id}');switchTabById('tab-spt')">→ SPT Runs</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteBoring('${b.id}')">Delete</button>
+          <button class="btn btn-primary" style="flex:1" onclick="saveBoring(state.borings[${i}].id)">Save Boring</button>
+          <button class="btn btn-outline" style="flex:1" onclick="activateBoring(state.borings[${i}].id);switchTabById('tab-spt')">→ SPT Runs</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBoring(state.borings[${i}].id)">Delete</button>
         </div>
       </div>
     </div>`;
@@ -917,12 +1118,16 @@ function renderBoringCards() {
   makeSearchableSelects(el);
 }
 
-function toggleBorCard(uid, boringId) {
+function toggleBorCard(uid, idx) {
   const card = document.getElementById(`bc-${uid}`);
   if (!card) return;
   card.classList.toggle('expanded');
-  // Also set as active boring when expanded
-  if (card.classList.contains('expanded')) activateBoring(boringId);
+  // HS-1/HS-3: user-entered boring IDs are never embedded in inline JS
+  // string literals — handlers receive the array index instead.
+  if (card.classList.contains('expanded')) {
+    const b = state.borings[idx];
+    if (b) activateBoring(b.id);
+  }
 }
 
 function activateBoring(id) {
@@ -984,36 +1189,51 @@ function delSPT(id) {
   renderSPT(); updateStatusBar();
 }
 
+// ── CALCULATION BASIS: SPT N-VALUE (review item HS-4) ─────────────
+// Per ASTM D1586, the N-value is the sum of the blow counts for the
+// 2nd and 3rd 6-in increments — the 12 in of penetration following the
+// 6-in seating interval. This applies to BOTH the 3-interval (18 in)
+// and 4-interval (24 in) drive conventions: the 4th increment is
+// recorded and exported to gINT (Blows_4th) but is NOT included in N.
+// The previous code had two identical-looking branches with no
+// documented basis; this version makes the convention explicit.
+// ✔ ENGINEER SIGN-OFF: basis confirmed by R. Haynes, 2026-06-11
+//   (N = b2 + b3 for both drive conventions; refusal "(b2+b3)*").
+//   Regression tests encode this in tests/run-tests.js.
+const REFUSAL_N_VALUE = 50; // ASTM D1586 / office convention: refusal reported as N = 50, displayed "50*"
+
 function calcN(r, intervals) {
-  intervals = intervals || '3';
-  const b1=parseInt(r.b1), b2=parseInt(r.b2), b3=parseInt(r.b3), b4=parseInt(r.b4);
+  intervals = intervals || '3'; // retained for the call signature; N basis is identical (see above)
+  const b1 = parseInt(r.b1), b2 = parseInt(r.b2), b3 = parseInt(r.b3);
 
   if (r.refusal) {
-    // Refusal: find which interval hit 50 and compute N from the last two valid intervals
-    // Seating (b1) refusal: N = 50 (report as seating refusal)
-    if (!isNaN(b1) && b1 >= 50) return '50*';
-    // 2nd interval refusal
-    if (!isNaN(b2) && b2 >= 50) return (isNaN(b1)?50:50) + '*'; // N = 50 by convention
-    // 3rd interval refusal — N = b2 + b3 (even if b3 is partial/50)
-    if (!isNaN(b2) && !isNaN(b3)) {
-      return (b2 + b3) + '*';
-    }
-    // Fallback: show 50*
-    return '50*';
+    // Refusal during seating or the 2nd increment: report N = 50*
+    if (!isNaN(b1) && b1 >= REFUSAL_N_VALUE) return REFUSAL_N_VALUE + '*';
+    if (!isNaN(b2) && b2 >= REFUSAL_N_VALUE) return REFUSAL_N_VALUE + '*';
+    // Refusal in/after the 3rd increment: N = b2 + b3 (b3 may be a partial drive)
+    if (!isNaN(b2) && !isNaN(b3)) return (b2 + b3) + '*';
+    return REFUSAL_N_VALUE + '*';
   }
 
-  if (intervals === '4') {
-    if (isNaN(b2)||isNaN(b3)) return '—';
-    return b2+b3;
-  } else {
-    if (isNaN(b2)||isNaN(b3)) return '—';
-    return b2+b3;
-  }
+  // Standard drive: N = 2nd + 3rd increments (both 3- and 4-interval drives)
+  if (isNaN(b2) || isNaN(b3)) return '—';
+  return b2 + b3;
 }
 
+// ── CALCULATION BASIS: SAMPLE BOTTOM DEPTH (review item HS-5) ─────
+// Split Spoon (S) / Shelby Tube (T): bottom = top + interval length,
+//   where the interval is entered in INCHES (r.intervalLen, legacy r.length).
+// Bulk (B) / Grab (G): the UI's "Bottom Depth (ft)" field is stored in
+//   r.length and IS the bottom depth — no interval math applies. The old
+//   code ran top + r.length/12 for every type, silently corrupting B/G
+//   bottom depths on screen.
 function calcBottom(r) {
   const top = parseFloat(r.topDepth);
-  const len = parseFloat(r.intervalLen || r.length);
+  if (r.type === 'B' || r.type === 'G') {
+    const bot = parseFloat(r.length);
+    return isNaN(bot) ? '?' : bot.toFixed(2);
+  }
+  const len = parseFloat(r.intervalLen || r.length); // inches
   if (!isNaN(top) && !isNaN(len)) return (top + len/12).toFixed(2);
   return '?';
 }
@@ -1051,7 +1271,7 @@ function renderSPT() {
     <div class="entry-card" id="spt-${r.id}">
       <div class="entry-header" onclick="toggleEntry('spt-${r.id}')">
         <div>
-          <div class="entry-depth">${sptTypeLabel(r)} &nbsp; ${r.topDepth || '?'} – ${bot} ft</div>
+          <div class="entry-depth">${sptTypeLabel(r)} &nbsp; ${esc(r.topDepth) || '?'} – ${bot} ft</div>
           <div class="entry-meta">${r.type==='S'?'Split Spoon':r.type==='T'?'Shelby Tube':r.type==='B'?'Bulk':'Grab'}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -1073,7 +1293,7 @@ function renderSPT() {
           </div>
           <div class="field">
             <label>Sample No.</label>
-            <input type="text" value="${r.num}" placeholder="e.g. 1" oninput="updSPT(${r.id},'num',this.value)">
+            <input type="text" value="${esc(r.num)}" placeholder="e.g. 1" oninput="updSPT(${r.id},'num',this.value)">
           </div>
         </div>
 
@@ -1081,18 +1301,18 @@ function renderSPT() {
         <div class="grid-2">
           <div class="field">
             <label>Top Depth (ft)</label>
-            <input type="number" step="0.5" value="${r.topDepth}" placeholder="e.g. 5.0"
+            <input type="number" step="0.5" value="${esc(r.topDepth)}" placeholder="e.g. 5.0"
               oninput="updSPT(${r.id},'topDepth',this.value);updBot(${r.id})">
           </div>
           ${isDepthDefined ? `
           <div class="field">
             <label>Bottom Depth (ft)</label>
-            <input type="number" step="0.5" value="${r.length}" placeholder="e.g. 6.5"
+            <input type="number" step="0.5" value="${esc(r.length)}" placeholder="e.g. 6.5"
               oninput="updSPT(${r.id},'length',this.value)">
           </div>` : `
           <div class="field">
             <label>Interval Length (in) → <span style="color:var(--accent);font-family:var(--mono)" id="bot-${r.id}">${bot} ft</span></label>
-            <input type="number" step="1" value="${r.intervalLen}" placeholder="e.g. 24"
+            <input type="number" step="1" value="${esc(r.intervalLen)}" placeholder="e.g. 24"
               oninput="updSPT(${r.id},'intervalLen',this.value);updBot(${r.id})">
           </div>`}
         </div>
@@ -1106,17 +1326,17 @@ function renderSPT() {
           <span class="nl">N</span>
         </div>
         <div class="blow-row">
-          <input class="blow-input" type="number" min="0" max="99" value="${r.b1}" placeholder="—"
+          <input class="blow-input" type="number" min="0" max="99" value="${esc(r.b1)}" placeholder="—"
             oninput="updSPT(${r.id},'b1',this.value);updN(${r.id})">
           <span class="blow-sep">·</span>
-          <input class="blow-input" type="number" min="0" max="99" value="${r.b2}" placeholder="—"
+          <input class="blow-input" type="number" min="0" max="99" value="${esc(r.b2)}" placeholder="—"
             oninput="updSPT(${r.id},'b2',this.value);updN(${r.id})">
           <span class="blow-sep">+</span>
-          <input class="blow-input" type="number" min="0" max="99" value="${r.b3}" placeholder="—"
+          <input class="blow-input" type="number" min="0" max="99" value="${esc(r.b3)}" placeholder="—"
             oninput="updSPT(${r.id},'b3',this.value);updN(${r.id})">
           ${intervals==='4'?`
-          <span class="blow-sep">+</span>
-          <input class="blow-input" type="number" min="0" max="99" value="${r.b4}" placeholder="—"
+          <span class="blow-sep" title="4th increment is recorded/exported but not summed into N">·</span>
+          <input class="blow-input" type="number" min="0" max="99" value="${esc(r.b4)}" placeholder="—"
             oninput="updSPT(${r.id},'b4',this.value);updN(${r.id})">
           `:''}
           <span class="blow-sep">=</span>
@@ -1134,7 +1354,7 @@ function renderSPT() {
         <div class="divider"></div>
         <div class="field">
           <label>Recovery (in)</label>
-          <input type="number" step="0.5" value="${r.recovery}" placeholder="e.g. 18"
+          <input type="number" step="0.5" value="${esc(r.recovery)}" placeholder="e.g. 18"
             oninput="updSPT(${r.id},'recovery',this.value);updRec(${r.id})">
         </div>
         <div class="rec-bar-bg"><div class="rec-bar-fill" id="rbar-${r.id}" style="width:${recPct(r)}%"></div></div>
@@ -1154,7 +1374,11 @@ function renderSPT() {
 
 function updSPT(id, field, val) {
   const r = ab()?.spt.find(r => r.id === id);
-  if (r) r[field] = (field === 'refusal') ? val : val;
+  if (!r) return;
+  // P2-1: the old ternary was a no-op, so refusal could persist as the
+  // string "false" (which is truthy). Coerce to a real boolean.
+  r[field] = (field === 'refusal') ? (val === true || val === 'true') : val;
+  touchAudit(ab()); // P3-3
 }
 function updN(id) {
   const r = ab()?.spt.find(r => r.id === id);
@@ -1215,25 +1439,25 @@ function renderNotes() {
     <div class="entry-card" id="note-${n.id}">
       <div class="entry-header" onclick="toggleEntry('note-${n.id}')">
         <div>
-          <div class="entry-depth">${n.depth ? n.depth + ' ft' : 'No depth'}</div>
-          <div class="entry-meta">${n.timestamp}${n.text ? ' · ' + n.text.substring(0,40) + (n.text.length>40?'…':'') : ''}</div>
+          <div class="entry-depth">${n.depth ? esc(n.depth) + ' ft' : 'No depth'}</div>
+          <div class="entry-meta">${esc(n.timestamp)}${n.text ? ' · ' + esc(n.text.substring(0,40)) + (n.text.length>40?'…':'') : ''}</div>
         </div>
         <span class="entry-chevron">›</span>
       </div>
       <div class="entry-body">
         <div class="field">
           <label>Depth (ft)</label>
-          <input type="number" step="0.1" value="${n.depth}" placeholder="e.g. 14.5"
+          <input type="number" step="0.1" value="${esc(n.depth)}" placeholder="e.g. 14.5"
             oninput="updNote(${n.id},'depth',this.value)">
         </div>
         <div class="field">
           <label>Note</label>
           <textarea placeholder="Field observation, equipment issue, condition change…"
-            oninput="updNote(${n.id},'text',this.value)">${n.text}</textarea>
+            oninput="updNote(${n.id},'text',this.value)">${esc(n.text)}</textarea>
         </div>
         <div class="field">
           <label style="color:var(--muted)">Timestamp</label>
-          <div style="font-family:var(--mono);font-size:13px;color:var(--muted);padding:6px 0">${n.timestamp}</div>
+          <div style="font-family:var(--mono);font-size:13px;color:var(--muted);padding:6px 0">${esc(n.timestamp)}</div>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;justify-content:space-between">
           <button class="btn btn-primary btn-sm" onclick="saveNoteEntry(${n.id})">Save</button>
@@ -1270,10 +1494,10 @@ function addLith() {
   if (lith.length > 0) {
     const prev = lith[lith.length - 1];
     const prevDepth = (prev.topDepth !== '' && prev.botDepth !== '')
-      ? `${prev.topDepth} – ${prev.botDepth} ft`
-      : prev.topDepth !== '' ? `${prev.topDepth} ft – (open)` : '(depths not set)';
+      ? `${esc(prev.topDepth)} – ${esc(prev.botDepth)} ft`
+      : prev.topDepth !== '' ? `${esc(prev.topDepth)} ft – (open)` : '(depths not set)';
     document.getElementById('lith-link-prev-info').innerHTML =
-      `<span style="color:var(--label);font-size:10px;letter-spacing:.8px;text-transform:uppercase">Previous Stratum</span><br>${prevDepth} &nbsp;·&nbsp; ${prev.uscs || 'No classification'}`;
+      `<span style="color:var(--label);font-size:10px;letter-spacing:.8px;text-transform:uppercase">Previous Stratum</span><br>${prevDepth} &nbsp;·&nbsp; ${esc(prev.uscs) || 'No classification'}`;
     document.getElementById('lith-link-modal').classList.remove('hidden');
   } else {
     _pushNewLith(_pendingLithId, false);
@@ -1317,14 +1541,32 @@ function updLith(id, field, val) {
   if (l) {
     l[field] = val;
 
+    if (field === 'topDepth' || field === 'botDepth') {
+      const hdr = document.getElementById(`lith-depth-${id}`);
+      if (hdr) hdr.textContent = `${l.topDepth||'?'} \u2013 ${l.botDepth||'?'} ft`;
+    }
+
     // If this stratum is linked to the previous one, propagate topDepth → prev.botDepth
     // and lineType → prev.lineType automatically (the critical gINT requirement)
     if (l.linked) {
       const idx = lith.indexOf(l);
       if (idx > 0) {
         const prev = lith[idx - 1];
-        if (field === 'topDepth') { prev.botDepth = val; renderLith(); }
-        if (field === 'lineType') { prev.lineType = val; }
+        if (field === 'topDepth') {
+          prev.botDepth = val;
+          // Surgical DOM update — a full renderLith() here would destroy
+          // the input mid-keystroke (bug: only one digit could be typed
+          // before the card re-rendered and collapsed).
+          const prevBot = document.getElementById(`lith-bot-${prev.id}`);
+          if (prevBot) prevBot.value = val;
+          const prevHdr = document.getElementById(`lith-depth-${prev.id}`);
+          if (prevHdr) prevHdr.textContent = `${prev.topDepth||'?'} \u2013 ${prev.botDepth||'?'} ft`;
+        }
+        if (field === 'lineType') {
+          prev.lineType = val;
+          const prevSel = document.querySelector(`#lith-${prev.id} select[onchange*="'lineType'"]`);
+          if (prevSel) prevSel.value = val;
+        }
       }
     }
 
@@ -1362,6 +1604,27 @@ function buildSelect(opts, sel, id='') {
   return opts.map(o => `<option${sel===o?' selected':''}>${o}</option>`).join('');
 }
 
+// Collapsed-card preview: full field-app-style description.
+// moisture, density/consistency, color, primary constituent,
+// secondary (pct desc part), tertiary (pct desc part), other,
+// USCS lowercase in parentheses, AASHTO lowercase in brackets.
+function lithMeta(l) {
+  const parts = [];
+  if (l.moisture) parts.push(l.moisture);
+  if (l.densityConsist) parts.push(l.densityConsist);
+  if (l.color) parts.push(l.color);
+  const c1 = [l.c1desc, l.c1part].filter(Boolean).join(' ');
+  if (c1) parts.push(c1);
+  const c2 = [l.c2pct, l.c2desc, l.c2part].filter(Boolean).join(' ');
+  if (c2) parts.push(c2);
+  const c3 = [l.c3pct, l.c3desc, l.c3part].filter(Boolean).join(' ');
+  if (c3) parts.push(c3);
+  if (l.other) parts.push(l.other);
+  if (l.uscs) parts.push('(' + String(l.uscs).toLowerCase() + ')');
+  if (l.aashto) parts.push('[' + String(l.aashto).toLowerCase() + ']');
+  return parts.join(', ') || 'No description';
+}
+
 function renderLith() {
   const el = document.getElementById('lith-list');
   const b = ab();
@@ -1373,8 +1636,8 @@ function renderLith() {
     <div class="entry-card lith-card" id="lith-${l.id}">
       <div class="entry-header" onclick="toggleEntry('lith-${l.id}')">
         <div>
-          <div class="entry-depth" style="color:var(--accent2)">${l.topDepth||'?'} – ${l.botDepth||'?'} ft</div>
-          <div class="entry-meta">${l.uscs||'No classification'} ${l.lineType==='Solid'?'[Solid]':'[Dashed]'}${l.color?' · '+l.color:''}</div>
+          <div class="entry-depth" id="lith-depth-${l.id}" style="color:var(--accent2)">${esc(l.topDepth)||'?'} – ${esc(l.botDepth)||'?'} ft</div>
+          <div class="entry-meta">${esc(lithMeta(l))}</div>
         </div>
         <span class="entry-chevron">›</span>
       </div>
@@ -1390,18 +1653,18 @@ function renderLith() {
           </div>
           <div class="field">
             <label>Stratum No.</label>
-            <input type="text" value="${l.stratum}" placeholder="e.g. 1"
+            <input type="text" value="${esc(l.stratum)}" placeholder="e.g. 1"
               oninput="updLith(${l.id},'stratum',this.value)">
           </div>
         </div>
         <div class="grid-2">
           <div class="field">
             <label>Top Depth (ft)</label>
-            <input type="number" step="0.1" value="${l.topDepth}" oninput="updLith(${l.id},'topDepth',this.value)">
+            <input type="number" step="0.1" id="lith-top-${l.id}" value="${esc(l.topDepth)}" oninput="updLith(${l.id},'topDepth',this.value)">
           </div>
           <div class="field">
             <label>Bottom Depth (ft)</label>
-            <input type="number" step="0.1" value="${l.botDepth}" oninput="updLith(${l.id},'botDepth',this.value)">
+            <input type="number" step="0.1" id="lith-bot-${l.id}" value="${esc(l.botDepth)}" oninput="updLith(${l.id},'botDepth',this.value)">
           </div>
         </div>
         <div class="divider"></div>
@@ -1433,7 +1696,7 @@ function renderLith() {
         </div>
         <div class="field">
           <label>Color</label>
-          <input type="text" value="${l.color}" placeholder="e.g. Brown, Orange" oninput="updLith(${l.id},'color',this.value)">
+          <input type="text" value="${esc(l.color)}" placeholder="e.g. Brown, Orange" oninput="updLith(${l.id},'color',this.value)">
         </div>
         <div class="divider"></div>
         <!-- PRIMARY -->
@@ -1498,7 +1761,7 @@ function renderLith() {
         </div>
         <div class="field" style="margin-top:6px">
           <label>Other / Comments</label>
-          <textarea placeholder="e.g. Residual Soil, Contains Root Fragments…" oninput="updLith(${l.id},'other',this.value)">${l.other}</textarea>
+          <textarea placeholder="e.g. Residual Soil, Contains Root Fragments…" oninput="updLith(${l.id},'other',this.value)">${esc(l.other)}</textarea>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;justify-content:space-between">
           <button class="btn btn-primary btn-sm" onclick="saveLithEntry(${l.id})">Save</button>
@@ -1534,6 +1797,19 @@ function updGW(id, field, val) {
   if (g) g[field] = val;
 }
 
+// Reading-type change: toggle the custom-type field and refresh the
+// header label in place. A full renderGW() here collapsed the card
+// the moment the user picked a type (bug).
+function updGWType(id, val) {
+  const g = ab()?.gw.find(g => g.id === id);
+  if (!g) return;
+  g.readingType = val;
+  const custom = document.getElementById(`gw-custom-${id}`);
+  if (custom) custom.style.display = (val === 'Other') ? '' : 'none';
+  const hdr = document.getElementById(`gw-type-${id}`);
+  if (hdr) hdr.textContent = (val === 'Other') ? (g.customType || 'Other') : val;
+}
+
 const GW_TYPES = ['During Drilling','End of Drilling','24-Hour','48-Hour','72-Hour','Other'];
 
 function renderGW() {
@@ -1547,36 +1823,35 @@ function renderGW() {
     <div class="entry-card gw-card" id="gw-${g.id}">
       <div class="entry-header" onclick="toggleEntry('gw-${g.id}')">
         <div>
-          <div class="entry-depth" style="color:#0284c7">${g.readingType === 'Other' ? (g.customType||'Other') : g.readingType}</div>
-          <div class="entry-meta">${g.depth ? 'Water @ ' + g.depth + ' ft' : 'No depth entered'} ${g.cave ? '· Cave/Casing: '+g.cave+' ft':''}</div>
+          <div class="entry-depth" id="gw-type-${g.id}" style="color:#0284c7">${g.readingType === 'Other' ? (esc(g.customType)||'Other') : esc(g.readingType)}</div>
+          <div class="entry-meta">${g.depth ? 'Water @ ' + esc(g.depth) + ' ft' : 'No depth entered'} ${g.cave ? '· Cave/Casing: '+esc(g.cave)+' ft':''}</div>
         </div>
         <span class="entry-chevron">›</span>
       </div>
       <div class="entry-body">
         <div class="field">
           <label>Reading Type</label>
-          <select onchange="updGW(${g.id},'readingType',this.value);renderGW()">
+          <select onchange="updGWType(${g.id},this.value)">
             ${GW_TYPES.map(t => `<option${g.readingType===t?' selected':''}>${t}</option>`).join('')}
           </select>
         </div>
-        ${g.readingType==='Other' ? `
-        <div class="field">
+        <div class="field" id="gw-custom-${g.id}" style="display:${g.readingType==='Other'?'':'none'}">
           <label>Describe Reading Type</label>
-          <input type="text" value="${g.customType}" placeholder="e.g. 7-Day" oninput="updGW(${g.id},'customType',this.value)">
-        </div>` : ''}
+          <input type="text" value="${esc(g.customType)}" placeholder="e.g. 7-Day" oninput="updGW(${g.id},'customType',this.value);updGWType(${g.id},'Other')">
+        </div>
         <div class="grid-2">
           <div class="field">
             <label>Water Depth (ft)</label>
-            <input type="number" step="0.1" value="${g.depth}" placeholder="e.g. 24.3" oninput="updGW(${g.id},'depth',this.value)">
+            <input type="number" step="0.1" value="${esc(g.depth)}" placeholder="e.g. 24.3" oninput="updGW(${g.id},'depth',this.value)">
           </div>
           <div class="field">
             <label>Casing / Cave Depth (ft)</label>
-            <input type="number" step="0.1" value="${g.cave}" placeholder="e.g. Cased" oninput="updGW(${g.id},'cave',this.value)">
+            <input type="number" step="0.1" value="${esc(g.cave)}" placeholder="e.g. Cased" oninput="updGW(${g.id},'cave',this.value)">
           </div>
         </div>
         <div class="field">
           <label>Timestamp</label>
-          <input type="datetime-local" value="${g.timestamp}" onchange="updGW(${g.id},'timestamp',this.value)">
+          <input type="datetime-local" value="${esc(g.timestamp)}" onchange="updGW(${g.id},'timestamp',this.value)">
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;justify-content:space-between">
           <button class="btn btn-primary btn-sm" onclick="saveGWEntry(${g.id})">Save</button>
@@ -1658,6 +1933,8 @@ function updRockMetrics(id) {
   if (qd) qd.textContent = rqdDesc(rqdP);
   const botEl = document.getElementById(`rbot-${id}`);
   if (botEl) botEl.textContent = rockBottom(r)+' ft';
+  const botLbl = document.getElementById(`rbot-lbl-${id}`);
+  if (botLbl) botLbl.textContent = rockBottom(r)+' ft';
 }
 
 function renderRock() {
@@ -1674,8 +1951,8 @@ function renderRock() {
     <div class="entry-card rock-card" id="rock-${r.id}">
       <div class="entry-header" onclick="toggleEntry('rock-${r.id}')">
         <div>
-          <div class="entry-depth" style="color:#7c3aed">R-${r.num} &nbsp; ${r.topDepth||'?'} – <span id="rbot-${r.id}">${rockBottom(r)} ft</span></div>
-          <div class="entry-meta">${r.rockType||'Rock type TBD'} ${r.color?'· '+r.color:''}</div>
+          <div class="entry-depth" style="color:#7c3aed">R-${esc(r.num)} &nbsp; ${esc(r.topDepth)||'?'} – <span id="rbot-${r.id}">${rockBottom(r)} ft</span></div>
+          <div class="entry-meta">${esc(r.rockType)||'Rock type TBD'} ${r.color?'· '+esc(r.color):''}</div>
         </div>
         <div style="display:flex;gap:5px;align-items:center">
           ${recP !== null ? `<div class="entry-badge" style="background:#f5f3ff;color:#7c3aed;border-color:#a78bfa">Rec ${recP}%</div>` : ''}
@@ -1687,26 +1964,26 @@ function renderRock() {
         <div class="grid-3">
           <div class="field">
             <label>Run No.</label>
-            <input type="number" value="${r.num}" min="1" oninput="updRock(${r.id},'num',this.value)">
+            <input type="number" value="${esc(r.num)}" min="1" oninput="updRock(${r.id},'num',this.value)">
           </div>
           <div class="field">
             <label>Top Depth (ft)</label>
-            <input type="number" step="0.1" value="${r.topDepth}" oninput="updRock(${r.id},'topDepth',this.value);updRockMetrics(${r.id})">
+            <input type="number" step="0.1" value="${esc(r.topDepth)}" oninput="updRock(${r.id},'topDepth',this.value);updRockMetrics(${r.id})">
           </div>
           <div class="field">
             <label>Run Length (ft) → <span style="color:#7c3aed;font-family:var(--mono)" id="rbot-lbl-${r.id}">${rockBottom(r)} ft</span></label>
-            <input type="number" step="0.1" value="${r.runLength}" oninput="updRock(${r.id},'runLength',this.value);updRockMetrics(${r.id})">
+            <input type="number" step="0.1" value="${esc(r.runLength)}" oninput="updRock(${r.id},'runLength',this.value);updRockMetrics(${r.id})">
           </div>
         </div>
 
         <div class="grid-2">
           <div class="field">
             <label>Rock Color</label>
-            <input type="text" value="${r.color}" placeholder="e.g. Gray, Brown" oninput="updRock(${r.id},'color',this.value)">
+            <input type="text" value="${esc(r.color)}" placeholder="e.g. Gray, Brown" oninput="updRock(${r.id},'color',this.value)">
           </div>
           <div class="field">
             <label>Rock Type</label>
-            <input type="text" value="${r.rockType}" placeholder="e.g. Quartzite" oninput="updRock(${r.id},'rockType',this.value)">
+            <input type="text" value="${esc(r.rockType)}" placeholder="e.g. Quartzite" oninput="updRock(${r.id},'rockType',this.value)">
           </div>
         </div>
 
@@ -1714,11 +1991,11 @@ function renderRock() {
         <div class="grid-2">
           <div class="field">
             <label>Recovery Length (in)</label>
-            <input type="number" step="0.5" value="${r.recoveryLen}" oninput="updRock(${r.id},'recoveryLen',this.value);updRockMetrics(${r.id})">
+            <input type="number" step="0.5" value="${esc(r.recoveryLen)}" oninput="updRock(${r.id},'recoveryLen',this.value);updRockMetrics(${r.id})">
           </div>
           <div class="field">
             <label>RQD Length (in)</label>
-            <input type="number" step="0.5" value="${r.rqdLen}" oninput="updRock(${r.id},'rqdLen',this.value);updRockMetrics(${r.id})">
+            <input type="number" step="0.5" value="${esc(r.rqdLen)}" oninput="updRock(${r.id},'rqdLen',this.value);updRockMetrics(${r.id})">
           </div>
         </div>
         <div class="metrics-row" style="margin-bottom:10px">
@@ -1781,7 +2058,18 @@ function renderAll() {
 }
 
 // ── EXPORT gINT XLSX ─────────────────────────────────────────────
+// P2-4: SheetJS failures (malformed data, memory, unexpected types) must
+// surface to the user instead of dying silently in the console.
 function exportGINT() {
+  try {
+    _exportGINTInner();
+  } catch (err) {
+    console.error('XLSX export failed:', err);
+    alert('XLSX export failed: ' + (err && err.message ? err.message : err) + '\n\nPlease check your data and try again.');
+  }
+}
+
+function _exportGINTInner() {
   saveToCurrent();
   if (!state.borings.length) { showToast('No borings to export','warn'); return; }
 
@@ -1849,7 +2137,7 @@ function exportGINT() {
     (b.lith||[]).forEach(l => {
       liRows.push([
         b.id, l.topDepth, l.botDepth, l.lineType, l.stratum,
-        l.moisture, l.densityConsist, l.color,
+        l.moisture, sp(l.densityConsist), l.color,
         l.c1desc, l.c1part,
         sp(l.c2pct), l.c2desc, l.c2part,
         sp(l.c3pct), l.c3desc, l.c3part,
@@ -1885,7 +2173,7 @@ function exportGINT() {
   const smRows = [smHdr];
   state.borings.forEach(b => {
     (b.spt||[]).forEach(r => {
-      const n = (r.type==='S') ? calcN(r) : '';
+      const n = (r.type==='S') ? calcN(r, b.sptIntervals || '3') : '';
       const sampleLen = (r.type==='B'||r.type==='G')
         ? ((parseFloat(r.length)-parseFloat(r.topDepth))*12||'')
         : (r.intervalLen||r.length||24);
@@ -1921,6 +2209,415 @@ function exportGINT() {
   showToast('gINT XLSX exported ✓','success');
 }
 
+// ── GINT IMPORT ──────────────────────────────────────────────────
+function importGINT() {
+  // Guard: SheetJS (vendor/xlsx.full.min.js) must be loaded.
+  // "XLSX is not defined" usually means a stale service worker is serving an
+  // old cached copy of this page. Hard-refresh (Ctrl+Shift+R / ⌘+Shift+R)
+  // or clear site data to force the SW to fetch the latest version.
+  if (typeof XLSX === 'undefined') {
+    alert('SheetJS library not loaded — cannot import.\n\nThis usually means your browser is running a cached version of FieldLog.\n\nFix: press Ctrl+Shift+R (Windows) or ⌘+Shift+R (Mac) to force-refresh, then try again.');
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = evt => {
+    const file = evt.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        _importGINTInner(e.target.result, file.name);
+      } catch (err) {
+        console.error('gINT import failed:', err);
+        alert('gINT import failed: ' + (err && err.message ? err.message : err) +
+              '\n\nVerify this is a FieldLog-exported gINT file and try again.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  input.click();
+}
+
+function _importGINTInner(arrayBuffer, filename) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
+
+  // Require at minimum PROJECT and POINT sheets
+  if (!wb.Sheets['PROJECT'] || !wb.Sheets['POINT']) {
+    throw new Error('Missing required sheets (PROJECT, POINT). Is this a FieldLog gINT export?');
+  }
+
+  // Sheet name → array of row objects keyed by header
+  function sheetRows(name) {
+    const ws = wb.Sheets[name];
+    if (!ws) return [];
+    return XLSX.utils.sheet_to_json(ws, { defval: '' });
+  }
+
+  // ── DIAGNOSTIC: log column names for debugging ────────────────────
+  // Open browser DevTools → Console to see what columns are in the file.
+  // This helps diagnose field-name mismatches between gINT templates.
+  ['PROJECT','POINT','LITHOLOGY','SAMPLE','NOTES'].forEach(sName => {
+    const rows = sheetRows(sName);
+    if (rows.length) {
+      console.log(`[gINT Import] ${sName} columns:`, Object.keys(rows[0]));
+      console.log(`[gINT Import] ${sName} first row sample:`, rows[0]);
+    } else {
+      console.log(`[gINT Import] ${sName}: sheet empty or missing`);
+    }
+  });
+
+  // Safe string coercion
+  function str(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }
+
+  // Resolve a value from a row by trying column names in priority order.
+  // Returns the first non-empty match, or '' if none match.
+  function col(row, ...names) {
+    for (const name of names) {
+      const v = str(row[name]);
+      if (v) return v;
+    }
+    return '';
+  }
+
+  // Parse a date/datetime value back to a string FieldLog can use.
+  // - Date-only fields → "yyyy-MM-dd"
+  // - Datetime fields  → "yyyy-MM-ddTHH:mm"  (datetime-local input format)
+  // Handles: Excel serial number (integer or fractional), ISO string,
+  //          US locale "m/d/yyyy" or "m/d/yyyy H:MM" strings.
+  function parseDatetime(v, dateOnly) {
+    if (!v && v !== 0) return '';
+    if (typeof v === 'number') {
+      try {
+        const d = XLSX.SSF.parse_date_code(v);
+        if (d) {
+          const dt = `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+          if (!dateOnly && d.H !== undefined && (d.H || d.M)) {
+            return `${dt}T${String(d.H||0).padStart(2,'0')}:${String(d.M||0).padStart(2,'0')}`;
+          }
+          return dt;
+        }
+      } catch(e) {}
+      return '';
+    }
+    const s = String(v).trim();
+    if (!s) return '';
+    // ISO with time component
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return dateOnly ? s.slice(0,10) : s.slice(0,16);
+    // ISO date only
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // US locale date or datetime: "m/d/yyyy" or "m/d/yyyy H:MM" or "m/d/yyyy H:MM AM/PM"
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (m) {
+      const dt = `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+      if (!dateOnly && m[4]) return `${dt}T${m[4].padStart(2,'0')}:${m[5]}`;
+      return dt;
+    }
+    return s; // pass through unrecognized formats unchanged
+  }
+
+  // Format a parsed datetime for the notes timestamp display field
+  // (matches the locale format used by addNote: "Jun 18, 2026, 10:30 AM")
+  function fmtNoteTs(v) {
+    const dt = parseDatetime(v);
+    if (!dt) return '';
+    try {
+      const d = new Date(dt.includes('T') ? dt : dt + 'T00:00');
+      return d.toLocaleString('en-US', {
+        month:'short', day:'numeric', year:'numeric',
+        hour:'numeric', minute:'2-digit'
+      });
+    } catch(e) { return dt; }
+  }
+
+  // Map common US state abbreviations to the full names used in FieldLog's
+  // proj-state select, so files exported from gINT (which stores abbrevs) match.
+  const STATE_MAP = {
+    'MD':'Maryland','VA':'Virginia','DC':'DC','DE':'Delaware',
+    'PA':'Pennsylvania','WV':'West Virginia','NC':'North Carolina'
+  };
+  function normalizeState(v) { return STATE_MAP[v.toUpperCase().trim()] || v; }
+
+  // Infer the closest GW reading type from the elapsed calendar days between
+  // boring completion and the GW measurement.
+  // Thresholds match the GW_TYPES list: End of Drilling / 24-Hr / 48-Hr / 72-Hr / Other
+  function inferGWType(completeDateStr, gwTimestampStr) {
+    if (!completeDateStr || !gwTimestampStr) return 'During Drilling';
+    try {
+      // Use calendar-day comparison at noon to avoid timezone/hour edge cases
+      const cDay = new Date(completeDateStr.slice(0, 10) + 'T12:00').getTime();
+      const gDay = new Date(gwTimestampStr.slice(0, 10) + 'T12:00').getTime();
+      if (isNaN(cDay) || isNaN(gDay)) return 'During Drilling';
+      const days = Math.round((gDay - cDay) / 86400000);
+      if (days <  0) return 'During Drilling'; // before completion — taken during drilling
+      if (days === 0) return 'End of Drilling'; // same calendar day as completion
+      if (days <= 1)  return '24-Hour';
+      if (days <= 2)  return '48-Hour';
+      if (days <= 4)  return '72-Hour';          // ±1 day window around 72 hr
+      return 'Other';
+    } catch(e) { return 'During Drilling'; }
+  }
+
+  // ── PROJECT ──────────────────────────────────────────────────────
+  const pRow = sheetRows('PROJECT')[0] || {};
+  const rawProject = {
+    // Try FieldLog export names first, then common gINT / alternate names
+    name:   col(pRow, 'Project Name',   'Name', 'Project_Name', 'ProjectName'),
+    num:    col(pRow, 'Commission Number', 'RKK Project Number', 'Commission No', 'Number', 'Project Number', 'Proj_Number', 'Project No'),
+    client: col(pRow, 'Client',          'Owner', 'ClientName', 'Client Name'),
+    state:  normalizeState(col(pRow, 'State', 'Project State', 'ST')),
+    county: col(pRow, 'County or Locale','County', 'Locale', 'Location'),
+    units:  col(pRow, 'Input_Units',     'Units') || 'E',
+    sptIntervals: '3'
+  };
+
+  // ── POINT → boring stubs ─────────────────────────────────────────
+  const boringsByPID = {};
+  const boringOrder  = [];
+  // Per-entry ID counters (global across borings so syncCounters() works)
+  let gwAutoId = 1, sptAutoId = 1, lithAutoId = 1, rockAutoId = 1, noteAutoId = 1;
+
+  sheetRows('POINT').forEach(pt => {
+    const rawPID = str(pt['PointID']);
+    if (!rawPID || boringsByPID[rawPID]) return; // skip blank or duplicate
+
+    const b = {
+      id:               rawPID,
+      holeDepth:        str(pt['HoleDepth']),
+      loc:              str(pt['Location']),
+      start:            parseDatetime(pt['Start'], true),
+      complete:         parseDatetime(pt['Complete'], true),
+      completionStatus: '',
+      north:            str(pt['North']),
+      east:             str(pt['East']),
+      coordSys:         str(pt['Coordinate System']) || 'MD State Plane',
+      lat:              str(pt['Latitude']),
+      lon:              str(pt['Longitude']),
+      elev:             str(pt['Elevation']),
+      inspector:        str(pt['Inspector']),
+      co:               str(pt['Drilling Company']),
+      driller:          str(pt['Driller']),
+      rig:              str(pt['Rig']),
+      method:           str(pt['Advancement Method']),
+      samplerID:        str(pt['Soil Sampler Inner Diameter']) || '1.375',
+      hammer:           str(pt['SPT Hammer Type']),
+      hamCal:           parseDatetime(pt['HamCalDate'], true),
+      hamWt:            str(pt['SPT Hammer Weight']) || '140',
+      hamDrop:          str(pt['SPT Hammer Fall']) || '30',
+      coreMethod:       str(pt['Rock Coring Method']),
+      coreDia:          str(pt['Rock Core Diameter']),
+      boringNotes:      str(pt['Notes']),
+      sptIntervals:     '3',
+      createdBy:  getUserInitials(), createdAt:  new Date().toISOString(),
+      modifiedBy: getUserInitials(), modifiedAt: new Date().toISOString(),
+      spt: [], lith: [], gw: [], rock: [], notes: []
+    };
+
+    // GW readings (up to 3 exported per boring)
+    for (let i = 1; i <= 3; i++) {
+      const ts  = pt[`GW ${i} Date and Time`];
+      const dep = str(pt[`GW ${i} Depth`]);
+      const cav = str(pt[`GW ${i} Cave`]);
+      if (ts || dep) {
+        const tsStr = parseDatetime(ts);   // full datetime: "yyyy-MM-ddTHH:mm"
+        b.gw.push({
+          id: gwAutoId++,
+          readingType: inferGWType(b.complete, tsStr),
+          customType: '',
+          timestamp: tsStr,
+          depth: dep, cave: cav, notes: ''
+        });
+      }
+    }
+
+    boringsByPID[rawPID] = b;
+    boringOrder.push(rawPID);
+  });
+
+  if (!boringOrder.length) {
+    throw new Error('No borings found in POINT sheet.');
+  }
+
+  // ── LITHOLOGY ────────────────────────────────────────────────────
+  // Rock lith rows (Line_Type=Solid, no Stratum, has Manual Override) are
+  // stored separately and merged onto SAMPLE 'R' runs by topDepth.
+  // They cannot be reverse-parsed into structured fields, so the Manual
+  // Override text is preserved in the run's notes field.
+  const rockDescByKey = {}; // key: `${pid}|${topDepth}` → { color, notes }
+
+  sheetRows('LITHOLOGY').forEach(li => {
+    const pid = str(li['PointID']);
+    const b = boringsByPID[pid];
+    if (!b) return;
+
+    const isRockRow = str(li['Line_Type']) === 'Solid'
+                   && !str(li['Stratum'])
+                   && str(li['Manual Override']);
+    if (isRockRow) {
+      rockDescByKey[`${pid}|${str(li['Depth'])}`] = {
+        color: str(li['Color']),
+        notes: str(li['Manual Override'])
+      };
+      return;
+    }
+
+    b.lith.push({
+      id:             lithAutoId++,
+      linked:         false,
+      lineType:       str(li['Line_Type']) || 'Dash',
+      stratum:        str(li['Stratum']),
+      topDepth:       str(li['Depth']),
+      botDepth:       str(li['Bottom']),
+      moisture:       str(li['Moisture']),
+      // gINT native: "Consistency"; FieldLog export: "Density / Consistency"
+      densityConsist: col(li, 'Density / Consistency', 'Consistency', 'Density_Consistency', 'D_Consistency'),
+      color:          str(li['Color']),
+      c1desc:         str(li['Constituent 1: Descriptor']),
+      c1part:         str(li['Constituent 1: Particle']),
+      c2pct:          str(li['Constituent 2: Percentage']),
+      c2desc:         str(li['Constituent 2: Descriptor']),
+      c2part:         str(li['Constituent 2: Particle']),
+      c3pct:          str(li['Constituent 3: Percentage']),
+      c3desc:         str(li['Constituent 3: Descriptor']),
+      c3part:         str(li['Constituent 3: Particle']),
+      other:          str(li['Other']),
+      // gINT native: "Graphic" holds the USCS symbol; FieldLog export: "USCS"
+      uscs:           col(li, 'USCS', 'Graphic', 'USCS_Symbol', 'USCS Symbol'),
+      // gINT native: "AASHTO" (same); fallback to common variants
+      aashto:         col(li, 'AASHTO', 'AASHTO_Symbol', 'AASHTO Symbol')
+    });
+  });
+
+  // ── SAMPLE ───────────────────────────────────────────────────────
+  const rockNumByBoring = {}; // auto-number rock runs per boring
+
+  sheetRows('SAMPLE').forEach(sm => {
+    const pid = str(sm['PointID']);
+    const b = boringsByPID[pid];
+    if (!b) return;
+    const typ = str(sm['Sample Type']);
+    const top = str(sm['Depth']);
+
+    if (typ === 'R') {
+      // Rock core run
+      // Export wrote Length as (bottom-top)*12 inches; reverse to feet
+      const lenIn    = parseFloat(sm['Length']) || 0;
+      const runLenFt = lenIn > 0 ? +(lenIn / 12).toFixed(2) : '';
+      // Recovery is stored in inches directly
+      const recIn    = parseFloat(sm['Recovery']);
+      // RQD was exported as a percentage; reconstruct rqdLen in inches
+      const rqdPct   = parseFloat(sm['RQD']);
+      const rqdLenIn = (!isNaN(rqdPct) && runLenFt !== '')
+        ? +(rqdPct / 100 * Number(runLenFt) * 12).toFixed(1) : '';
+      // Merge description from LITHOLOGY rock rows (keyed by topDepth)
+      const desc = rockDescByKey[`${pid}|${top}`] || {};
+      if (!rockNumByBoring[pid]) rockNumByBoring[pid] = 0;
+      rockNumByBoring[pid]++;
+
+      b.rock.push({
+        id:          rockAutoId++,
+        num:         str(sm['Sample No']) || String(rockNumByBoring[pid]),
+        topDepth:    top,
+        runLength:   runLenFt !== '' ? String(runLenFt) : '',
+        recoveryLen: !isNaN(recIn) ? String(recIn) : '',
+        rqdLen:      rqdLenIn !== '' ? String(rqdLenIn) : '',
+        color:       desc.color || '',
+        rockType:    '',
+        hardness: '', weathering: '', fracFreq: '',
+        jointSpacing: '', bedding: '', attitude: '',
+        notes:       desc.notes || ''
+      });
+
+    } else if (['S','T','B','G'].includes(typ)) {
+      const lenIn = parseFloat(sm['Length']) || 0;
+      b.spt.push({
+        id:          sptAutoId++,
+        type:        typ,
+        num:         str(sm['Sample No']),
+        topDepth:    top,
+        // SPT: intervalLen stored as 18/24-inch count; others: length in inches
+        intervalLen: typ === 'S' ? String(lenIn) : '',
+        length:      typ !== 'S' ? String(lenIn) : '',
+        b1:          str(sm['Blows_1st']),
+        b2:          str(sm['Blows_2nd']),
+        b3:          str(sm['Blows_3rd']),
+        b4:          str(sm['Blows_4th']),
+        recovery:    str(sm['Recovery']),
+        refusal:     false,
+        notes:       ''
+      });
+    }
+  });
+
+  // ── NOTES ────────────────────────────────────────────────────────
+  sheetRows('NOTES').forEach(nt => {
+    const pid = str(nt['PointID']);
+    const b = boringsByPID[pid];
+    if (!b) return;
+    const txt = str(nt['Notes']);
+    if (!txt) return;
+    b.notes.push({
+      id:        noteAutoId++,
+      depth:     str(nt['Depth']),
+      text:      txt,
+      timestamp: fmtNoteTs(nt['GintUpdated']) || new Date().toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'})
+    });
+  });
+
+  // ── Build raw state object and run through existing sanitizer ────
+  // This reuses all validation logic from the JSON load path (HS-2, P2-3).
+  const rawState = {
+    schemaVersion: FIELDLOG_SCHEMA_VERSION,
+    project:       rawProject,
+    borings:       boringOrder.map(pid => boringsByPID[pid]),
+    activeBoring:  boringOrder.length ? 0 : null
+  };
+
+  let newState;
+  try {
+    newState = migrateAndSanitizeState(rawState);
+  } catch (verr) {
+    alert('Import validation failed: ' + verr.message);
+    return;
+  }
+
+  // ── Confirm overwrite if a project is already loaded ─────────────
+  const currentHasData = state.project.name || state.borings.length;
+  if (currentHasData) {
+    const label = newState.project.name || filename;
+    if (!confirm(
+      `Import ${newState.borings.length} boring(s) from "${label}"?\n\n` +
+      `This will replace your current project.\n` +
+      `Save a JSON snapshot first if you need to preserve the current data.\n\n` +
+      `Continue?`
+    )) return;
+  }
+
+  // ── Apply ─────────────────────────────────────────────────────────
+  state = newState;
+  syncCounters();
+  setv('proj-name',   state.project.name);
+  setv('proj-num',    state.project.num);
+  setv('proj-client', state.project.client);
+  setv('proj-state',  state.project.state);  syncSearchSelect(document.getElementById('proj-state'));
+  setv('proj-county', state.project.county);
+  setv('proj-units',  state.project.units);  syncSearchSelect(document.getElementById('proj-units'));
+  renderBoringCards();
+  renderBoringSelect();
+  renderAll();
+  updateHdr();
+  updateStatusBar();
+
+  const bCount  = state.borings.length;
+  const hasRock = state.borings.some(b => b.rock.length > 0);
+  const note    = hasRock ? ' · rock: geometry only' : '';
+  showToast(`Imported ${bCount} boring${bCount !== 1 ? 's' : ''} ✓${note}`, 'success');
+}
+
 function excelDate(str) {
   if (!str) return '';
   try {
@@ -1954,8 +2651,8 @@ function renderSaved() {
   el.innerHTML = savedLogs.map(log => `
     <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div>
-        <div style="font-family:var(--cond);font-weight:700;font-size:15px">${log.project||'Unnamed'}</div>
-        <div style="font-size:12px;color:var(--muted)">${log.date} · ${log.borings} boring(s)</div>
+        <div style="font-family:var(--cond);font-weight:700;font-size:15px">${esc(log.project)||'Unnamed'}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(log.date)} · ${esc(log.borings)} boring(s)</div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-ghost btn-sm" onclick="loadLog(${log.id})">Load</button>
@@ -1980,12 +2677,17 @@ function syncCounters() {
 function loadLog(id) {
   const log = savedLogs.find(l => l.id === id);
   if (!log) return;
-  state = JSON.parse(JSON.stringify(log.data));
+  try {
+    state = migrateAndSanitizeState(log.data); // HS-2 + P2-3
+  } catch (verr) {
+    showToast('Saved log failed validation: ' + verr.message, 'warn');
+    return;
+  }
   syncCounters();
   // restore project form
   setv('proj-name', state.project.name); setv('proj-num', state.project.num);
-  setv('proj-client', state.project.client); setv('proj-state', state.project.state);
-  setv('proj-county', state.project.county); setv('proj-units', state.project.units);
+  setv('proj-client', state.project.client); setv('proj-state', state.project.state); syncSearchSelect(document.getElementById('proj-state'));
+  setv('proj-county', state.project.county); setv('proj-units', state.project.units); syncSearchSelect(document.getElementById('proj-units'));
   renderBoringCards();
   renderBoringSelect();
   renderAll();
@@ -1998,7 +2700,12 @@ function exportFromSaved(id) {
   const log = savedLogs.find(l => l.id === id);
   if (!log) return;
   const prev = JSON.parse(JSON.stringify(state));
-  state = JSON.parse(JSON.stringify(log.data));
+  try {
+    state = migrateAndSanitizeState(log.data); // HS-2 + P2-3
+  } catch (verr) {
+    showToast('Saved log failed validation: ' + verr.message, 'warn');
+    return;
+  }
   exportGINT();
   state = prev;
 }
@@ -2062,9 +2769,11 @@ function setv(id, val) {
 // ── JSON SNAPSHOT ─────────────────────────────────────────────────
 function saveJSON() {
   saveToCurrent();
+  state.schemaVersion = FIELDLOG_SCHEMA_VERSION; // P2-3
   const snap = {
     _tool:    'FieldLog v2',
     _version: '2.0',
+    _schemaVersion: FIELDLOG_SCHEMA_VERSION,
     _saved:   new Date().toISOString(),
     state:    JSON.parse(JSON.stringify(state))
   };
@@ -2098,15 +2807,24 @@ function loadJSON() {
           alert('This file is not a FieldLog v2 snapshot.');
           return;
         }
-        state = snap.state;
+        // HS-2 + P2-3: schema-validate, migrate, and whitelist-rebuild
+        // before a single byte of the file touches app state or the DOM.
+        let incoming;
+        try {
+          incoming = migrateAndSanitizeState(snap.state);
+        } catch (verr) {
+          alert('This snapshot failed validation and was not loaded:\n' + verr.message);
+          return;
+        }
+        state = incoming;
         syncCounters();
         // Restore project form
         setv('proj-name', state.project.name);
         setv('proj-num', state.project.num);
         setv('proj-client', state.project.client);
-        setv('proj-state', state.project.state);
+        setv('proj-state', state.project.state);   syncSearchSelect(document.getElementById('proj-state'));
         setv('proj-county', state.project.county);
-        setv('proj-units', state.project.units);
+        setv('proj-units', state.project.units);   syncSearchSelect(document.getElementById('proj-units'));
         if (state.borings.length) state.activeBoring = 0;
         renderBoringCards();
         renderBoringSelect();
@@ -2166,7 +2884,7 @@ function showAutosaveBanner() {
   if (!window._pendingAutosave) return;
   const snap = window._pendingAutosave;
   const d    = new Date(snap._saved);
-  const proj = snap.state?.project?.name ? ' \u2014 ' + snap.state.project.name : '';
+  const proj = snap.state?.project?.name ? ' \u2014 ' + esc(snap.state.project.name) : ''; // HS-2: localStorage is untrusted
   const nBor = snap.state?.borings?.length || 0;
   const time = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   const date = d.toLocaleDateString([], {month:'short', day:'numeric'});
@@ -2185,14 +2903,14 @@ function restoreAutosave() {
   const snap = window._pendingAutosave;
   if (!snap) return;
   try {
-    state = snap.state;
+    state = migrateAndSanitizeState(snap.state); // HS-2 + P2-3
     syncCounters();
     setv('proj-name',   state.project.name);
     setv('proj-num',    state.project.num);
     setv('proj-client', state.project.client);
-    setv('proj-state',  state.project.state);
+    setv('proj-state',  state.project.state);  syncSearchSelect(document.getElementById('proj-state'));
     setv('proj-county', state.project.county);
-    setv('proj-units',  state.project.units);
+    setv('proj-units',  state.project.units);  syncSearchSelect(document.getElementById('proj-units'));
     if (state.borings.length) state.activeBoring = 0;
     renderBoringCards(); renderBoringSelect(); renderAll();
     updateHdr(); updateStatusBar();
@@ -2421,7 +3139,29 @@ function syncSearchSelect(sel) {
   input.value = (cur && cur.value !== '') ? cur.text : '';
 }
 
+// ── HEADER DROPDOWN MENUS ────────────────────────────────────────
+function toggleHdrMenu(id) {
+  const el = document.getElementById(id);
+  const wasOpen = el.classList.contains('open');
+  closeHdrMenus();
+  if (!wasOpen) el.classList.add('open');
+}
+function closeHdrMenus() {
+  document.querySelectorAll('.hdr-menu.open').forEach(m => m.classList.remove('open'));
+}
+// Close on any click outside a menu
+document.addEventListener('click', e => {
+  if (!e.target.closest('.hdr-menu')) closeHdrMenus();
+});
+
 // ── INIT ─────────────────────────────────────────────────────────
+// Warn immediately if SheetJS failed to load — both export and import depend on it.
+if (window._xlsxMissing || typeof XLSX === 'undefined') {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#b91c1c;color:white;font-family:sans-serif;font-size:13px;font-weight:600;padding:10px 16px;text-align:center';
+  banner.textContent = '⚠ SheetJS library failed to load — gINT export and import are unavailable. Check that vendor/xlsx.full.min.js is deployed. (Ctrl+Shift+R to force-refresh)';
+  document.body.prepend(banner);
+}
 renderBoringCards();
 renderSaved();
 updateStatusBar();

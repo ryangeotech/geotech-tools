@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wolman Pebble Count — Geotech Tools</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- P1-4: self-hosted IBM Plex (was Google Fonts CDN) -->
 <style>
 :root {
   --navy:   #0c1f35;
@@ -32,6 +32,7 @@ body { font-family: var(--sans); font-size: 13px; background: var(--bg); color: 
 
 /* ── HEADER ── */
 .header { background: var(--navy); color: #fff; border-bottom: 3px solid var(--blue2); }
+.breadcrumb{padding:6px 24px;font-size:11px;font-family:var(--mono);color:var(--muted);background:#fff;border-bottom:1px solid var(--border)}.breadcrumb a{color:var(--blue2);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
 .header-inner {
   max-width: 1280px; margin: 0 auto; padding: 16px 24px 12px;
   display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
@@ -347,6 +348,9 @@ canvas#psd-chart { width: 100%; border: 1px solid var(--border); border-radius: 
     </div>
     <div class="header-tag">GRAIN SIZE / SCOUR</div>
   </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">← Geotech Tools</a> &nbsp;/&nbsp; Wolman Pebble Count
 </div>
 
 <div class="container">
@@ -1465,6 +1469,15 @@ window.addEventListener('resize', () => {
 for (let i = 1; i <= 6; i++) {
   const el = document.getElementById(`tab-count-${i}`);
   if (el) el.textContent = '—';
+}
+</script>
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
 }
 </script>
 </body>

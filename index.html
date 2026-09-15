@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Geotech Tools</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- P1-4: self-hosted IBM Plex (was Google Fonts CDN) -->
 <style>
 :root {
   --navy:   #0c1f35;
@@ -183,7 +183,7 @@ footer {
     Geotechnical Internal Tools
   </div>
   <h1>Geotech<br><em>Tools</em></h1>
-  <p class="tagline">// Internal field &amp; engineering tools.<br>Offline-capable. No login required.</p>
+  <p class="tagline">// Internal field &amp; engineering tools.<br>Offline-capable.</p>
 </header>
 
 <!-- ── TOOLS ── -->
@@ -315,6 +315,7 @@ footer {
       </div>
     </a>
 
+    <!-- ===== TEMPORARILY HIDDEN: Earth Pressure Calculator — restore by deleting this opening comment line and the closing comment line below =====
     <a class="tool-card" href="earth-pressure-calculator.html" style="--card-accent: #0369a1">
       <div class="card-icon">⬛</div>
       <div class="card-tag">Lateral Earth Pressure</div>
@@ -329,7 +330,9 @@ footer {
         <span class="card-arrow">→</span>
       </div>
     </a>
+    ===== END TEMPORARILY HIDDEN: Earth Pressure Calculator ===== -->
 
+    <!-- ===== TEMPORARILY HIDDEN: Micropile Capacity Calculator — restore by deleting this opening comment line and the closing comment line below =====
     <a class="tool-card" href="micropile-capacity-calculator.html" style="--card-accent: #0891b2">
       <div class="card-icon">🔩</div>
       <div class="card-tag">Deep Foundations · Capacity</div>
@@ -344,6 +347,7 @@ footer {
         <span class="card-arrow">→</span>
       </div>
     </a>
+    ===== END TEMPORARILY HIDDEN: Micropile Capacity Calculator ===== -->
 
     <a class="tool-card" href="pile-corrosion-calculator.html" style="--card-accent: #be123c">
       <div class="card-icon">⚙️</div>
@@ -362,6 +366,7 @@ footer {
 
   </div>
 
+  <!-- ===== TEMPORARILY HIDDEN: FE Modeling & Constitutive Models section (HS Model Parameter Calculator was the only tile) — restore by deleting this opening comment line and the closing comment line below =====
   <div class="section-label">FE Modeling &amp; Constitutive Models</div>
   <div class="tool-grid">
 
@@ -381,6 +386,7 @@ footer {
     </a>
 
   </div>
+  ===== END TEMPORARILY HIDDEN: FE Modeling & Constitutive Models section ===== -->
 </main>
 
 <footer>
@@ -390,5 +396,14 @@ footer {
   <div class="footer-right"></div>
 </footer>
 
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
+</script>
 </body>
 </html>

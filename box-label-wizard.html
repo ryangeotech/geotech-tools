@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Box Label Wizard</title>
+<link rel="manifest" href="manifest.json">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  @import url('fonts/fonts.css'); /* P1-4: self-hosted IBM Plex (was Google Fonts CDN) */
   :root{--panel-bg:#1a1f2e;--panel-surface:#242938;--panel-border:#343a52;--accent:#4ade80;--text-primary:#e8eaf0;--text-secondary:#8b90a8;--input-bg:#2d3347;--input-border:#404660;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'IBM Plex Sans',sans-serif;background:var(--panel-bg);color:var(--text-primary);display:flex;height:100vh;overflow:hidden;}
@@ -13,6 +14,7 @@
   /* ── SIDEBAR ── */
   #sidebar{width:270px;min-width:270px;background:var(--panel-surface);border-right:1px solid var(--panel-border);display:flex;flex-direction:column;overflow-y:auto;}
   #sidebar-header{padding:18px 18px 14px;border-bottom:1px solid var(--panel-border);}
+  .breadcrumb-link{font-size:11px;font-family:'IBM Plex Mono',monospace;margin-bottom:10px;display:block}.breadcrumb-link a{color:var(--accent);text-decoration:none}.breadcrumb-link a:hover{text-decoration:underline}
   .logo{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
   .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 7px var(--accent);}
   .logo h1{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);}
@@ -147,6 +149,7 @@
 
 <aside id="sidebar">
   <div id="sidebar-header">
+    <div class="breadcrumb-link"><a href="index.html">← Geotech Tools</a> / Box Label Wizard</div>
     <div class="logo"><div class="logo-dot"></div><h1>Box Label Wizard</h1></div>
     <p>RK&amp;K Field Sampling</p>
   </div>
@@ -244,5 +247,14 @@ render();
   .box-label{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
 }
 </style>
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
+</script>
 </body>
 </html>

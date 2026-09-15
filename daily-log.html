@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1b4f8a">
 <title>Daily Log of Subsurface Exploration</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<!-- P1-4: fonts self-hosted (no runtime CDN dependency) -->
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root{
   --bg:#f0f2f5;--surface:#fff;--border:#d0d5de;--border2:#b8bfcc;
@@ -28,16 +30,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .topbar-title{font-family:var(--cond);font-weight:700;font-size:13px;letter-spacing:.8px;text-transform:uppercase}
 .topbar-sub{font-family:var(--mono);font-size:9px;opacity:.55;letter-spacing:.3px;margin-top:1px}
 .topbar-right{display:flex;gap:6px;align-items:center}
+.breadcrumb{position:fixed;top:48px;left:0;right:0;z-index:299;padding:5px 16px;font-size:11px;font-family:var(--mono);color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border)}.breadcrumb a{color:var(--accent);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
 .btn-top{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28);color:white;font-family:var(--cond);font-weight:600;font-size:11px;letter-spacing:.7px;text-transform:uppercase;padding:5px 11px;border-radius:5px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .btn-top:hover{background:rgba(255,255,255,.24)}
 .btn-top.hi{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.45)}
 .autosave-status{font-family:var(--mono);font-size:9px;opacity:.6;letter-spacing:.3px;white-space:nowrap;padding:0 4px}
 
 /* ── LAYOUT ── */
-.app-body{display:flex;margin-top:48px;min-height:calc(100vh - 48px)}
+.app-body{display:flex;margin-top:75px;min-height:calc(100vh - 75px)}
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sb-w);min-width:var(--sb-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:48px;left:0;bottom:0;overflow-y:auto;z-index:200;transition:transform .25s ease}
+.sidebar{width:var(--sb-w);min-width:var(--sb-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:75px;left:0;bottom:0;overflow-y:auto;z-index:200;transition:transform .25s ease}
 .sidebar.hidden{transform:translateX(-100%)}
 .sb-section{padding:14px 14px 0}
 .sb-label{font-family:var(--cond);font-weight:700;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
@@ -281,6 +284,10 @@ textarea.finput.tall{min-height:100px}
   </div>
 </div>
 
+<div class="breadcrumb">
+  <a href="index.html">← Geotech Tools</a> &nbsp;/&nbsp; Daily Log
+</div>
+
 <!-- APP BODY -->
 <div class="app-body">
 
@@ -336,6 +343,11 @@ textarea.finput.tall{min-height:100px}
           Save JSON
         </button>
       </div>
+      <button class="btn-sb" onclick="clearDeviceData()" style="margin-top:8px;color:#c0392b">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Clear This Device
+      </button>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4;font-family:var(--cond)">Removes the autosave snapshot and stored initials from this browser only. Saved JSON files are not affected.</div>
     </div>
   </aside>
 
@@ -589,7 +601,90 @@ textarea.finput.tall{min-height:100px}
 /* =====================================================================
    STATE
 ===================================================================== */
-let project = { name:'', no:'', taskTemplate:[], logs:[] };
+let project = { schemaVersion: 2, name:'', no:'', taskTemplate:[], logs:[] };
+
+/* ═══════════════════════════════════════════════════════════════
+   SECURITY & DATA-INTEGRITY HELPERS
+   (code review items HS-2, P2-3, P3-3, P3-4)
+═══════════════════════════════════════════════════════════════ */
+
+// HS-2: HTML-escape every user-supplied value interpolated into a
+// template literal (covers text nodes and double-quoted attributes).
+function esc(v){
+  return String(v ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+const DAILYLOG_SCHEMA_VERSION = 2; // P2-3: bump when the data model changes
+
+function cleanStr(v,max=4000){ if(v===null||v===undefined) return ''; return String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').slice(0,max); }
+function cleanNum(v,fb=0){ const n=Number(v); return Number.isFinite(n)?n:fb; }
+// Signatures: only well-formed PNG/JPEG data URLs survive an import.
+function cleanSig(v){ return (typeof v==='string'&&/^data:image\/(png|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(v))?v:null; }
+
+// P3-3: lightweight audit identity (until Entra ID auth, P1-1)
+function getUserInitials(){ try{ return localStorage.getItem('geotools_user_initials')||''; }catch(e){ return ''; } }
+function ensureUserInitials(){
+  let ini=getUserInitials();
+  if(!ini){
+    ini=(prompt('Enter your initials (recorded with log data for QC traceability):')||'').trim().replace(/[^A-Za-z.]/g,'').slice(0,6);
+    if(ini){ try{ localStorage.setItem('geotools_user_initials',ini); }catch(e){} }
+  }
+  return ini;
+}
+
+// P3-4: clear all Daily Log data from this device
+function clearDeviceData(){
+  if(!confirm('Clear ALL Daily Log data stored on this device?\n\nThis removes the autosave snapshot and your stored initials. Exported JSON files are NOT affected.\n\nThis cannot be undone.')) return;
+  try{
+    localStorage.removeItem('dailylog_autosave');
+    localStorage.removeItem('geotools_user_initials');
+  }catch(e){}
+  location.reload();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   P2-3 + HS-2: SCHEMA VERSIONING & IMPORT VALIDATION
+   Imported JSON and localStorage restores are whitelist-rebuilt:
+   only known fields with coerced types survive. Free-text fields are
+   kept verbatim but ALWAYS rendered through esc().
+═══════════════════════════════════════════════════════════════ */
+function sanitizeProject(raw){
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)) throw new Error('Not a valid Daily Log project file.');
+  const ver=cleanNum(raw.schemaVersion,1); // pre-versioning saves = v1
+  if(ver>DAILYLOG_SCHEMA_VERSION) throw new Error('This file was saved by a newer version of Daily Log (schema v'+ver+'). Update the app, then try again.');
+  // v1 → v2 migration: schemaVersion + audit fields introduced; no shape changes.
+  const p={ schemaVersion:DAILYLOG_SCHEMA_VERSION, name:cleanStr(raw.name,200), no:cleanStr(raw.no,100), contractor:cleanStr(raw.contractor,200), taskTemplate:[], logs:[] };
+  (Array.isArray(raw.taskTemplate)?raw.taskTemplate:[]).forEach(t=>{
+    if(!t||typeof t!=='object') return;
+    p.taskTemplate.push({ itemNo:cleanStr(t.itemNo,50), description:cleanStr(t.description,500), unit:cleanStr(t.unit,30), unitRate:cleanStr(t.unitRate,30), quantity:cleanStr(t.quantity,30) });
+  });
+  (Array.isArray(raw.logs)?raw.logs:[]).forEach(l=>{
+    if(!l||typeof l!=='object') return;
+    const sb=l.safetyBriefing||{}; const sg=l.signatures||{};
+    const log={
+      // HS-2: log IDs are interpolated into inline handlers — enforce a safe charset
+      id: cleanStr(l.id,40).replace(/[^A-Za-z0-9_-]/g,'') || ('log'+Date.now()+Math.floor(Math.random()*1e6)),
+      date:cleanStr(l.date,20), weather:cleanStr(l.weather,200), location:cleanStr(l.location,300),
+      contractor:cleanStr(l.contractor,200), drillerName:cleanStr(l.drillerName,200),
+      idleEquipment:cleanStr(l.idleEquipment), delays:cleanStr(l.delays),
+      safetyBriefing:{ topics:cleanStr(sb.topics), time:cleanStr(sb.time,20) },
+      officialVisitors:cleanStr(l.officialVisitors,2000), rkkRepDate:cleanStr(l.rkkRepDate,20), drillerDate:cleanStr(l.drillerDate,20),
+      createdBy:cleanStr(l.createdBy,10), createdAt:cleanStr(l.createdAt,40),
+      modifiedBy:cleanStr(l.modifiedBy,10), modifiedAt:cleanStr(l.modifiedAt,40),
+      tasks:[], borings:[], labor:[], equipment:[], notes:[],
+      signatures:{ crew:cleanSig(sg.crew), rkk:cleanSig(sg.rkk), driller:cleanSig(sg.driller) }
+    };
+    (Array.isArray(l.tasks)?l.tasks:[]).forEach(t=>log.tasks.push({ itemNo:cleanStr(t&&t.itemNo,50), description:cleanStr(t&&t.description,500), qty:cleanStr(t&&t.qty,30), unit:cleanStr(t&&t.unit,30), unitCustom:cleanStr(t&&t.unitCustom,30) }));
+    (Array.isArray(l.borings)?l.borings:[]).forEach(b=>log.borings.push({ boringNo:cleanStr(b&&b.boringNo,50), depthEst:cleanStr(b&&b.depthEst,30), depthAct:cleanStr(b&&b.depthAct,30), notes:cleanStr(b&&b.notes,1000) }));
+    (Array.isArray(l.labor)?l.labor:[]).forEach(x=>log.labor.push({ classification:cleanStr(x&&x.classification,200), onSite:cleanStr(x&&x.onSite,20), offSite:cleanStr(x&&x.offSite,20) }));
+    (Array.isArray(l.equipment)?l.equipment:[]).forEach(x=>log.equipment.push({ classification:cleanStr(x&&x.classification,200), size:cleanStr(x&&x.size,100), rigNo:cleanStr(x&&x.rigNo,100) }));
+    (Array.isArray(l.notes)?l.notes:[]).forEach(n=>log.notes.push({ time:cleanStr(n&&n.time,20), note:cleanStr(n&&n.note) }));
+    p.logs.push(log);
+  });
+  return p;
+}
 let activeLogId = null;
 const sigPads = {};
 let _dirty = false;
@@ -706,11 +801,11 @@ function addTemplateRow(itemNo, desc, unit, unitRate, quantity){
   const qty=quantity!==undefined&&quantity!==''?quantity:'';
   const tr=document.createElement('tr');
   tr.innerHTML=
-    `<td class="wno"><input type="text" value="${itemNo||n}" placeholder="${n}" oninput="syncTemplate()"></td>`+
-    `<td><input type="text" value="${desc||''}" placeholder="Description…" oninput="syncTemplate()"></td>`+
+    `<td class="wno"><input type="text" value="${esc(itemNo)||n}" placeholder="${n}" oninput="syncTemplate()"></td>`+
+    `<td><input type="text" value="${esc(desc)}" placeholder="Description…" oninput="syncTemplate()"></td>`+
     `<td class="wunit"><select onchange="syncTemplate()">${opts}</select></td>`+
-    `<td class="tmpl-rate"><input type="number" class="rate-input" min="0" step="0.01" value="${rate}" placeholder="0.00" oninput="recalcTemplateCosts()"></td>`+
-    `<td class="tmpl-qty-col"><input type="number" class="rate-input" min="0" step="any" value="${qty}" placeholder="0" oninput="recalcTemplateCosts()"></td>`+
+    `<td class="tmpl-rate"><input type="number" class="rate-input" min="0" step="0.01" value="${esc(rate)}" placeholder="0.00" oninput="recalcTemplateCosts()"></td>`+
+    `<td class="tmpl-qty-col"><input type="number" class="rate-input" min="0" step="any" value="${esc(qty)}" placeholder="0" oninput="recalcTemplateCosts()"></td>`+
     `<td class="tmpl-cost-cell zero" id="">—</td>`+
     `<td class="tmpl-del"><button onclick="this.closest('tr').remove();syncTemplate();recalcTemplateCosts()" title="Remove row">×</button></td>`;
   tbody.appendChild(tr);
@@ -778,7 +873,7 @@ function renderLogList(){
     const sub=bc?`${bc} boring${bc!==1?'s':''}`:(log.weather||'');
     const isActive=log.id===activeLogId && !inTmpl;
     return `<div class="log-item${isActive?' active':''}" onclick="switchToLog('${log.id}')">
-      <div><div class="log-item-date">${dt}</div>${sub?`<div class="log-item-sub">${sub}</div>`:''}</div>
+      <div><div class="log-item-date">${esc(dt)}</div>${sub?`<div class="log-item-sub">${esc(sub)}</div>`:''}</div>
       <button class="log-item-del" onclick="event.stopPropagation();deleteLog('${log.id}')" title="Delete">×</button>
     </div>`;
   }).join('');
@@ -788,8 +883,10 @@ function renderLogList(){
    LOG MANAGEMENT
 ===================================================================== */
 function newLog(){
+  ensureUserInitials(); // P3-3
   saveCurrentLogToState();
-  const log={ id:uid(), date:'', weather:'', location:'', contractor:'', drillerName:'', tasks:[], borings:[], labor:[], equipment:[], idleEquipment:'', delays:'', safetyBriefing:{topics:'',time:''}, signatures:{crew:null,rkk:null,driller:null}, officialVisitors:'', rkkRepDate:'', drillerDate:'', notes:[] };
+  const log={ id:uid(), createdBy:getUserInitials(), createdAt:new Date().toISOString(),
+    modifiedBy:getUserInitials(), modifiedAt:new Date().toISOString(), date:'', weather:'', location:'', contractor:'', drillerName:'', tasks:[], borings:[], labor:[], equipment:[], idleEquipment:'', delays:'', safetyBriefing:{topics:'',time:''}, signatures:{crew:null,rkk:null,driller:null}, officialVisitors:'', rkkRepDate:'', drillerDate:'', notes:[] };
   // Pre-populate tasks from template
   if(project.taskTemplate&&project.taskTemplate.length){
     log.tasks=project.taskTemplate.map(t=>({ itemNo:t.itemNo, description:t.description, qty:'', unit:t.unit, unitCustom:'' }));
@@ -872,6 +969,8 @@ function saveCurrentLogToState(){
     const i=entry.querySelectorAll('input,textarea'); log.notes.push({ time:i[0]?.value||'', note:i[1]?.value||'' });
   });
   log.signatures={ crew:getSigDataURL('sig-crew'), rkk:getSigDataURL('sig-rkk'), driller:getSigDataURL('sig-driller') };
+  // P3-3: audit trail
+  log.modifiedBy=getUserInitials(); log.modifiedAt=new Date().toISOString();
   // also sync template
   syncTemplate();
 }
@@ -930,13 +1029,13 @@ function setSigDataURL(cid,wid,url){ if(!url) return; const p=sigPads[cid]; if(!
 ===================================================================== */
 let taskRowCount=0;
 const UNITS=['LS','EA','LF','HR','Custom…'];
-function unitHTML(sel,cv){ sel=sel||'LS'; cv=cv||''; const opts=UNITS.map(u=>`<option value="${u}"${u===sel?' selected':''}>${u}</option>`).join(''); const show=sel==='Custom…'?'inline-block':'none'; return `<div class="unit-wrap"><select onchange="onUnitChange(this);recalcTotals()" style="width:auto;min-width:58px">${opts}</select><input class="unit-custom" type="text" placeholder="Type…" style="display:${show}" value="${cv}"></div>`; }
+function unitHTML(sel,cv){ sel=sel||'LS'; cv=cv||''; const opts=UNITS.map(u=>`<option value="${u}"${u===sel?' selected':''}>${u}</option>`).join(''); const show=sel==='Custom…'?'inline-block':'none'; return `<div class="unit-wrap"><select onchange="onUnitChange(this);recalcTotals()" style="width:auto;min-width:58px">${opts}</select><input class="unit-custom" type="text" placeholder="Type…" style="display:${show}" value="${esc(cv)}"></div>`; }
 function onUnitChange(sel){ const ci=sel.parentElement.querySelector('.unit-custom'); ci.style.display=sel.value==='Custom…'?'inline-block':'none'; if(sel.value==='Custom…') ci.focus(); }
 function addTaskRow(itemNo,desc,qty,unit,cu){
   taskRowCount++;
   const no=(itemNo!==undefined&&itemNo!=='') ? itemNo : taskRowCount;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="wno"><input type="text" value="${no}" oninput="recalcTotals()"></td>`+`<td><input type="text" value="${desc||''}" placeholder="Description…"></td>`+`<td class="wqty"><input type="number" min="0" step="any" value="${qty||''}" placeholder="0" oninput="recalcTotals()"></td>`+`<td class="wunit">${unitHTML(unit,cu)}</td>`+`<td class="total-cell zero">—</td>`+`<td class="rem-cell none">—</td>`;
+  tr.innerHTML=`<td class="wno"><input type="text" value="${esc(no)}" oninput="recalcTotals()"></td>`+`<td><input type="text" value="${esc(desc)}" placeholder="Description…"></td>`+`<td class="wqty"><input type="number" min="0" step="any" value="${esc(qty)}" placeholder="0" oninput="recalcTotals()"></td>`+`<td class="wunit">${unitHTML(unit,cu)}</td>`+`<td class="total-cell zero">—</td>`+`<td class="rem-cell none">—</td>`;
   document.getElementById('tasks-body').appendChild(tr);
 }
 function recalcTotals(){
@@ -996,10 +1095,10 @@ function recalcTotals(){
 /* =====================================================================
    OTHER TABLES / NOTES
 ===================================================================== */
-function addBoringRow(bno,est,act,notes){ const tbody=document.getElementById('borings-body'); const n=tbody.rows.length+1; const tr=document.createElement('tr'); tr.innerHTML=`<td><input type="text" value="${bno||''}" placeholder="B-${String(n).padStart(2,'0')}"></td><td class="wnr"><input type="text" value="${est||''}" placeholder="ft"></td><td class="wnr"><input type="text" value="${act||''}" placeholder="ft"></td><td><input type="text" value="${notes||''}" placeholder="Notes…"></td>`; tbody.appendChild(tr); }
-function addLaborRow(cls,on,off){ const tbody=document.getElementById('labor-body'); const n=tbody.rows.length+1; const tr=document.createElement('tr'); tr.innerHTML=`<td class="rn">${n}</td><td><input type="text" value="${cls||''}" placeholder="e.g. Driller"></td><td class="wnr"><input type="number" min="0" value="${on||''}" placeholder="0"></td><td class="wnr"><input type="number" min="0" value="${off||''}" placeholder="0"></td>`; tbody.appendChild(tr); }
-function addEquipRow(cls,size,rig){ const tbody=document.getElementById('equip-body'); const n=tbody.rows.length+1; const tr=document.createElement('tr'); tr.innerHTML=`<td class="rn">${n}</td><td><input type="text" value="${cls||''}" placeholder="e.g. CME-75"></td><td class="wnr"><input type="text" value="${size||''}" placeholder="—"></td><td class="wnr"><input type="text" value="${rig||''}" placeholder="—"></td>`; tbody.appendChild(tr); }
-function addNoteEntry(time,note){ const c=document.getElementById('notes-entries'); const d=document.createElement('div'); d.setAttribute('data-note','1'); d.style.cssText='display:grid;grid-template-columns:110px 1fr;gap:10px;margin-bottom:10px;align-items:start'; d.innerHTML=`<div class="fg"><label class="flabel">Time</label><input class="finput" type="time" value="${time||''}"></div><div class="fg"><label class="flabel">Note</label><textarea class="finput" placeholder="Note or remark…" style="min-height:60px">${note||''}</textarea></div>`; c.appendChild(d); }
+function addBoringRow(bno,est,act,notes){ const tbody=document.getElementById('borings-body'); const n=tbody.rows.length+1; const tr=document.createElement('tr'); tr.innerHTML=`<td><input type="text" value="${esc(bno)}" placeholder="B-${String(n).padStart(2,'0')}"></td><td class="wnr"><input type="text" value="${esc(est)}" placeholder="ft"></td><td class="wnr"><input type="text" value="${esc(act)}" placeholder="ft"></td><td><input type="text" value="${esc(notes)}" placeholder="Notes…"></td>`; tbody.appendChild(tr); }
+function addLaborRow(cls,on,off){ const tbody=document.getElementById('labor-body'); const n=tbody.rows.length+1; const tr=document.createElement('tr'); tr.innerHTML=`<td class="rn">${n}</td><td><input type="text" value="${esc(cls)}" placeholder="e.g. Driller"></td><td class="wnr"><input type="number" min="0" value="${esc(on)}" placeholder="0"></td><td class="wnr"><input type="number" min="0" value="${esc(off)}" placeholder="0"></td>`; tbody.appendChild(tr); }
+function addEquipRow(cls,size,rig){ const tbody=document.getElementById('equip-body'); const n=tbody.rows.length+1; const tr=document.createElement('tr'); tr.innerHTML=`<td class="rn">${n}</td><td><input type="text" value="${esc(cls)}" placeholder="e.g. CME-75"></td><td class="wnr"><input type="text" value="${esc(size)}" placeholder="—"></td><td class="wnr"><input type="text" value="${esc(rig)}" placeholder="—"></td>`; tbody.appendChild(tr); }
+function addNoteEntry(time,note){ const c=document.getElementById('notes-entries'); const d=document.createElement('div'); d.setAttribute('data-note','1'); d.style.cssText='display:grid;grid-template-columns:110px 1fr;gap:10px;margin-bottom:10px;align-items:start'; d.innerHTML=`<div class="fg"><label class="flabel">Time</label><input class="finput" type="time" value="${esc(time)}"></div><div class="fg"><label class="flabel">Note</label><textarea class="finput" placeholder="Note or remark…" style="min-height:60px">${esc(note)}</textarea></div>`; c.appendChild(d); }
 
 /* =====================================================================
    PROJECT SUMMARY
@@ -1077,7 +1176,7 @@ function renderSummaryTable(filteredLogs){
         else remCell=`<td class="rem-neg">${rem%1===0?rem:rem.toFixed(2)}</td>`;
       } else { remCell='<td class="num" style="color:var(--border2)">—</td>'; }
       const costCell=costToDate!==null?`<td class="cost">${fmtCost(costToDate)}</td>`:'<td class="num" style="color:var(--border2)">—</td>';
-      return `<tr><td class="num">${k}</td><td>${item.description||'<span style="color:var(--muted)">—</span>'}</td><td class="num">${item.unit||'—'}</td>${qc}<td class="tot">${fmtNum(qtyToDate)}</td>${initCell}${remCell}${costCell}</tr>`;
+      return `<tr><td class="num">${esc(k)}</td><td>${esc(item.description)||'<span style="color:var(--muted)">—</span>'}</td><td class="num">${esc(item.unit)||'—'}</td>${qc}<td class="tot">${fmtNum(qtyToDate)}</td>${initCell}${remCell}${costCell}</tr>`;
     }).join('');
     const spendFooter=totalSpend>0?`<tfoot><tr><td colspan="${3+filteredLogs.length+2}" style="text-align:right">Total Spend to Date</td><td class="spend">${fmtCost(totalSpend)}</td></tr></tfoot>`:'';
     document.getElementById('summary-body').innerHTML=`<p style="font-size:12px;color:var(--muted);font-family:var(--cond);margin-bottom:12px">${filteredLogs.length} log${filteredLogs.length!==1?'s':''}${rangeLabel} · quantities by Item No.</p><table class="summary-table"><thead><tr><th class="left" style="width:60px">Item No.</th><th class="left">Description</th><th style="width:60px">Unit</th>${dc}<th style="width:80px">Qty to Date</th><th style="width:70px">Init. Qty</th><th style="width:80px">Remaining</th><th style="width:110px;text-align:right">Cost to Date</th></tr></thead><tbody>${rows}</tbody>${spendFooter}</table>`;
@@ -1093,7 +1192,7 @@ function renderSummaryTable(filteredLogs){
       const costInRange=unitRate!==null?qtyInRange*unitRate:null;
       if(costInRange!==null) totalSpend+=costInRange;
       const costCell=costInRange!==null?`<td class="cost">${fmtCost(costInRange)}</td>`:'<td class="num" style="color:var(--border2)">—</td>';
-      return `<tr><td class="num">${k}</td><td>${item.description||'<span style="color:var(--muted)">—</span>'}</td><td class="num">${item.unit||'—'}</td>${qc}<td class="tot">${fmtNum(qtyInRange)}</td>${costCell}</tr>`;
+      return `<tr><td class="num">${esc(k)}</td><td>${esc(item.description)||'<span style="color:var(--muted)">—</span>'}</td><td class="num">${esc(item.unit)||'—'}</td>${qc}<td class="tot">${fmtNum(qtyInRange)}</td>${costCell}</tr>`;
     }).join('');
     const spendFooter=totalSpend>0?`<tfoot><tr><td colspan="${3+filteredLogs.length+1}" style="text-align:right">Total Spend for Period</td><td class="spend">${fmtCost(totalSpend)}</td></tr></tfoot>`:'';
     document.getElementById('summary-body').innerHTML=`<p style="font-size:12px;color:var(--muted);font-family:var(--cond);margin-bottom:12px">${filteredLogs.length} log${filteredLogs.length!==1?'s':''}${rangeLabel} · quantities by Item No.</p><table class="summary-table"><thead><tr><th class="left" style="width:60px">Item No.</th><th class="left">Description</th><th style="width:60px">Unit</th>${dc}<th style="width:80px">Qty in Period</th><th style="width:110px;text-align:right">Cost in Period</th></tr></thead><tbody>${rows}</tbody>${spendFooter}</table>`;
@@ -1108,8 +1207,8 @@ function printSummaryFiltered(){
   const itemMap={};
   filteredLogs.forEach(log=>{ (log.tasks||[]).forEach(t=>{ const k=String(t.itemNo).trim(); if(!k) return; if(!itemMap[k]) itemMap[k]={description:t.description||'',unit:t.unit||'',byLog:{}}; if(t.description&&!itemMap[k].description) itemMap[k].description=t.description; itemMap[k].byLog[log.id]=(parseFloat(t.qty)||0); }); });
   const items=Object.keys(itemMap).sort((a,b)=>parseFloat(a)-parseFloat(b)||a.localeCompare(b));
-  const projLabel=[project.name,project.no].filter(Boolean).join(' — ')||'Unnamed Project';
-  const contractor=project.contractor?`<div style="font-size:12px;color:#6b7490;margin-top:2px">Drilling Contractor: ${project.contractor}</div>`:'';
+  const projLabel=esc([project.name,project.no].filter(Boolean).join(' — ')||'Unnamed Project');
+  const contractor=project.contractor?`<div style="font-size:12px;color:#6b7490;margin-top:2px">Drilling Contractor: ${esc(project.contractor)}</div>`:'';
   const from=document.getElementById('summary-from').value;
   const to=document.getElementById('summary-to').value;
   const isFiltered=!!(from||to);
@@ -1134,12 +1233,12 @@ function printSummaryFiltered(){
       if(costToDate!==null) totalSpend+=costToDate;
       const initCell=initQty!==null?`<td>${fmtNum(initQty)}</td>`:'<td style="color:#ccc">—</td>';
       let remCell; if(initQty!==null){ const rem=initQty-qtyToDate; const s=rem>0?'color:#1a7a5e':rem<0?'color:#c0392b':'color:#999'; remCell=`<td style="${s}">${fmtNum(rem)}</td>`; } else remCell='<td style="color:#ccc">—</td>';
-      return `<tr><td>${k}</td><td>${item.description||'—'}</td><td>${item.unit||'—'}</td>${qc}<td class="tot">${fmtNum(qtyToDate)}</td>${initCell}${remCell}<td class="tot" style="text-align:right">${fmtCost(costToDate)}</td></tr>`;
+      return `<tr><td>${esc(k)}</td><td>${esc(item.description)||'—'}</td><td>${esc(item.unit)||'—'}</td>${qc}<td class="tot">${fmtNum(qtyToDate)}</td>${initCell}${remCell}<td class="tot" style="text-align:right">${fmtCost(costToDate)}</td></tr>`;
     } else {
       const qtyInRange=filteredLogs.reduce((s,l)=>s+(item.byLog[l.id]||0),0);
       const costInRange=unitRate!==null?qtyInRange*unitRate:null;
       if(costInRange!==null) totalSpend+=costInRange;
-      return `<tr><td>${k}</td><td>${item.description||'—'}</td><td>${item.unit||'—'}</td>${qc}<td class="tot">${fmtNum(qtyInRange)}</td><td class="tot" style="text-align:right">${fmtCost(costInRange)}</td></tr>`;
+      return `<tr><td>${esc(k)}</td><td>${esc(item.description)||'—'}</td><td>${esc(item.unit)||'—'}</td>${qc}<td class="tot">${fmtNum(qtyInRange)}</td><td class="tot" style="text-align:right">${fmtCost(costInRange)}</td></tr>`;
     }
   }).join('') : `<tr><td colspan="100" style="text-align:center;color:#999;padding:20px">No task items logged yet.</td></tr>`;
   const spendLabel=isFiltered?'Total Spend for Period':'Total Spend to Date';
@@ -1175,6 +1274,7 @@ function saveProjectJSON(){
   saveCurrentLogToState();
   const proj=project.no||'project', date=new Date().toISOString().slice(0,10);
   const fn=`DailyLog_Project_${proj}_${date}.json`.replace(/[^a-z0-9_\-.]/gi,'_');
+  project.schemaVersion=DAILYLOG_SCHEMA_VERSION;
   const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; a.click(); URL.revokeObjectURL(a.href);
   showToast('Project JSON saved ✓','success');
@@ -1184,7 +1284,8 @@ function loadProjectJSON(event){
   const reader=new FileReader();
   reader.onload=e=>{ try{
     const data=JSON.parse(e.target.result);
-    project=data; activeLogId=null;
+    // HS-2/P2-3: whitelist-rebuild everything before it touches the app
+    project=sanitizeProject(data); activeLogId=null;
     document.getElementById('sb-proj-name').value=project.name||'';
     document.getElementById('sb-proj-no').value  =project.no||'';
     document.getElementById('sb-contractor').value=project.contractor||'';
@@ -1193,7 +1294,7 @@ function loadProjectJSON(event){
     document.getElementById('log-save-bar').classList.add('hidden');
     if(project.logs&&project.logs.length){ const s=[...project.logs].sort((a,b)=>(b.date||'').localeCompare(a.date||'')); switchToLog(s[0].id); }
     showToast('Project loaded ✓','success');
-  }catch(err){ alert('Could not parse project JSON.'); } };
+  }catch(err){ alert('Could not load project JSON: '+(err&&err.message?err.message:'invalid file')); } };
   reader.readAsText(file); event.target.value='';
 }
 
@@ -1207,7 +1308,7 @@ function autosave(){
   try{
     if(!project.name&&!project.logs.length) return;
     saveCurrentLogToState();
-    const snap={ _tool:'Daily Log', _version:'1.0', _saved:new Date().toISOString(), project:JSON.parse(JSON.stringify(project)), activeLogId };
+    const snap={ _tool:'Daily Log', _version:'1.0', _schemaVersion:DAILYLOG_SCHEMA_VERSION, _saved:new Date().toISOString(), project:JSON.parse(JSON.stringify(project)), activeLogId };
     // Strip signature data from autosave to avoid quota issues; they're preserved in manual JSON save
     snap.project.logs.forEach(l=>{ if(l.signatures) l.signatures={crew:null,rkk:null,driller:null}; });
     localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snap));
@@ -1234,7 +1335,7 @@ function showAutosaveBanner(){
   if(!window._pendingAutosave) return;
   const snap=window._pendingAutosave;
   const d=new Date(snap._saved);
-  const proj=snap.project?.name?` — ${snap.project.name}`:'';
+  const proj=snap.project?.name?` — ${esc(snap.project.name)}`:'';
   const nlogs=snap.project?.logs?.length||0;
   const time=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const date=d.toLocaleDateString([],{month:'short',day:'numeric'});
@@ -1250,7 +1351,8 @@ function showAutosaveBanner(){
 function restoreAutosave(){
   const snap=window._pendingAutosave; if(!snap) return;
   try{
-    project=snap.project; activeLogId=null;
+    // HS-2: localStorage is untrusted — same whitelist rebuild as imports
+    project=sanitizeProject(snap.project); activeLogId=null;
     document.getElementById('sb-proj-name').value=project.name||'';
     document.getElementById('sb-proj-no').value  =project.no||'';
     document.getElementById('sb-contractor').value=project.contractor||'';
@@ -1312,6 +1414,15 @@ window.addEventListener('afterprint', function(){
 initSigPad('sig-crew','wrap-crew');
 initSigPad('sig-rkk','wrap-rkk');
 initSigPad('sig-driller','wrap-driller');
+</script>
+<script>
+// P1-3: every tool registers the service worker so the whole suite
+// gets pre-cached for offline use no matter which page is opened first.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('Geotech Tools: service worker registered'))
+    .catch(e => console.warn('Geotech Tools: SW registration failed', e));
+}
 </script>
 </body>
 </html>
